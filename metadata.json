@@ -1,0 +1,5 @@
+{
+  "name": "FreeMatch",
+  "description": "A high-fidelity mobile dating app prototype featuring an infinite card feed with a specialized Ad-Injection Sequence (FSA), built with React and Framer Motion.",
+  "requestFramePermissions": []
+}
