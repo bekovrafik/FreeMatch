@@ -1,0 +1,68 @@
+name: freematch
+description: "High-performance AI-driven dating platform."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.1 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- Core Firebase ---
+  firebase_core: ^4.3.0
+
+  firebase_auth: ^6.1.3
+  cloud_firestore: ^6.1.1
+  firebase_storage: ^13.0.5
+  firebase_messaging: ^16.1.0
+  
+  # --- AI & Matching Engine ---
+  firebase_ai: ^3.6.1 
+  
+  # --- State & Navigation ---
+  flutter_riverpod: ^3.0.3
+  go_router: ^17.0.1
+  
+  # --- Performance & UI ---
+  cached_network_image: ^3.4.1 # Critical for reducing data usage
+  google_fonts: ^6.3.3
+  flutter_native_splash: ^2.4.4
+  
+  # --- Location & Ads ---
+  geolocator: ^14.0.2
+  geocoding: ^4.0.0
+  google_mobile_ads: ^7.0.0
+
+  # --- Media & System ---
+  image_picker: ^1.2.1
+  record: ^6.1.2
+  audioplayers: ^6.5.1
+  permission_handler: ^12.0.1
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.2
+  shared_preferences: ^2.5.4
+  uuid: ^4.5.2
+  intl: ^0.20.2
+  flutter_local_notifications: ^19.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  image: ^4.7.1 # Essential for server-side image processing prep
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/data/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/fee.png"
+  min_sdk_android: 21 # flutter_launcher_icons >= 0.10.0

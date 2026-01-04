@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // User can only write their own profile, but allow delete for cleanup
+      allow update: if request.auth.uid == userId;
+      // Allow creating arbitrary profiles for Seeding Demo Data (Dev Mode)
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated();
+      
+      // Subcollections
+      // Subcollections
+      match /likes/{targetId} {
+        allow write: if request.auth.uid == userId;
+        allow read, delete: if isAuthenticated();
+      }
+      
+      match /dislikes/{targetId} {
+        allow write: if request.auth.uid == userId;
+        allow read, delete: if isAuthenticated();
+      }
+      
+      match /received_likes/{likerId} {
+        // READ ONLY: Populated by Cloud Function
+        allow write: if false;
+        allow read: if isAuthenticated();
+      }
+
+      match /fcmToken {
+         allow write: if request.auth.uid == userId;
+      }
+    }
+    
+    // Matches (Created by Cloud Function)
+    match /matches/{matchId} {
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.users;
+      allow write: if false;
+    }
+    
+    // Chats
+    match /chats/{chatId} {
+      // Created by Cloud Function only
+      allow create: if false; 
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      
+      match /messages/{messageId} {
+         allow read, create: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
+  }
+}

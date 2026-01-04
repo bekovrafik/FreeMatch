@@ -1,0 +1,13 @@
+flutter_native_splash:
+  color: "#FFF0F5"
+  image: assets/images/fee.png
+  android: true
+  ios: true
+  
+  android_12:
+    color: "#FFF0F5"
+    image: assets/images/fee.png
+    icon_background_color: "#FFF0F5"
+    icon_background_color_dark: "#1A0510"
+    
+  color_dark: "#1A0510"

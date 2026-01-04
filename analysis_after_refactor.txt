@@ -1,0 +1,11 @@
+Analyzing FreeMatch...                                          
+
+   info • Statements in an if should be enclosed in a block • lib/screens/chat_screen.dart:91:21 • curly_braces_in_flow_control_structures
+warning • Unused import: 'package:cached_network_image/cached_network_image.dart' • lib/screens/profile_screen.dart:4:8 • unused_import
+warning • Unused import: 'package:intl/intl.dart' • lib/screens/profile_screen.dart:15:8 • unused_import
+   info • The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' • lib/screens/profile_screen.dart:18:8 • unnecessary_import
+warning • The declaration '_kDbImage' isn't referenced • lib/screens/profile_screen.dart:33:7 • unused_element
+   info • Unnecessary use of multiple underscores • lib/widgets/ad_card.dart:48:31 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/widgets/ad_card.dart:48:35 • unnecessary_underscores
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/empty_state_card.dart:77:49 • deprecated_member_use
+
