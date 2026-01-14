@@ -2,116 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:giphy_get/giphy_get.dart';
 import '../models/chat_message.dart';
 import '../widgets/custom_toast.dart';
 import '../services/chat_service.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/storage_service.dart';
 import '../screens/public_profile_screen.dart';
-import '../models/user_profile.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 // import 'package:permission_handler/permission_handler.dart'; // Unused
 
 // --- Constants (Parity with React) ---
-const List<String> emojis = [
-  '😀',
-  '😂',
-  '😍',
-  '🥺',
-  '😎',
-  '🔥',
-  '❤️',
-  '🍆',
-  '🍑',
-  '🍻',
-  '👋',
-  '👀',
-  '😭',
-  '🥳',
-  '🥰',
-  '🤪',
-  '🤩',
-  '😡',
-  '😱',
-  '🤢',
-  '🤮',
-  '🤧',
-  '😵',
-  '👍',
-  '👎',
-];
-
-const List<Map<String, String>> gifts = [
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/2935/2935413.png',
-    'name': 'Coffee',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/1404/1404945.png',
-    'name': 'Pizza',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/742/742751.png',
-    'name': 'Rose',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/4710/4710922.png',
-    'name': 'Teddy',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/1139/1139982.png',
-    'name': 'Party',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/3112/3112946.png',
-    'name': 'Trophy',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/938/938063.png',
-    'name': 'Ice Cream',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/869/869869.png',
-    'name': 'Sun',
-  },
-  {
-    'url': 'https://cdn-icons-png.flaticon.com/512/1076/1076928.png',
-    'name': 'Ring',
-  },
-];
-
-const List<Map<String, dynamic>> mockGifs = [
-  {
-    'id': 'g1',
-    'url': 'https://media.giphy.com/media/l0HlHFRbmaZtBRhXG/giphy.gif',
-    'tags': ['happy', 'dance', 'excited'],
-  },
-  {
-    'id': 'g2',
-    'url': 'https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif',
-    'tags': ['hello', 'hi', 'wave'],
-  },
-  {
-    'id': 'g3',
-    'url': 'https://media.giphy.com/media/l2JdZO8X4Q2X3y7Di/giphy.gif',
-    'tags': ['love', 'heart', 'romance'],
-  },
-  {
-    'id': 'g4',
-    'url': 'https://media.giphy.com/media/3o7TKoWXm3okO1kgHC/giphy.gif',
-    'tags': ['funny', 'laugh', 'lol'],
-  },
-  {
-    'id': 'g5',
-    'url': 'https://media.giphy.com/media/xT5LMB2WiOdjpB7K4o/giphy.gif',
-    'tags': ['yes', 'agree', 'nod'],
-  },
-];
 
 class ChatDetailScreen extends ConsumerStatefulWidget {
   final Map<String, String> match;
@@ -134,11 +41,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // String? _recordPath; // Unused
   String? _playingUrl;
   bool _isPlaying = false;
-
-  bool _showEmoji = false;
-  bool _showGift = false;
-  bool _showGif = false;
-  String _gifSearch = '';
 
   @override
   void initState() {
@@ -190,8 +92,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         );
     // Note: No need to setState locally as StreamBuilder handles updates
     _textController.clear();
-    _closePickers();
     // Scroll to bottom (actually top since reverse: true)
+
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
@@ -267,14 +169,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         _playingUrl = url;
       });
     }
-  }
-
-  void _closePickers() {
-    setState(() {
-      _showEmoji = false;
-      _showGift = false;
-      _showGif = false;
-    });
   }
 
   void _showActionsMenu() {
@@ -560,6 +454,29 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
+  Future<void> _showGifPicker() async {
+    // Public Beta Key - User should replace with their own if needed
+    const apiKey = 'Phix89D55M26';
+
+    final GiphyGif? gif = await GiphyGet.getGif(
+      context: context,
+      apiKey: apiKey,
+      lang: GiphyLanguage.english,
+      randomID: "freematch_user", // Should be unique user ID in prod
+      tabColor: Colors.pink,
+      modal: false, // Full screen
+      showEmojis: false,
+    );
+
+    if (gif != null && mounted) {
+      // Use fixed_width for better performance/size in chat
+      final url = gif.images?.fixedWidth?.url ?? gif.images?.original?.url;
+      if (url != null) {
+        _handleSend("Sent a GIF", type: 'GIF', mediaUrl: url);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -571,34 +488,24 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: GestureDetector(
-          onTap: () {
-            // Reconstruct a UserProfile object from the map
-            // Note: In a real app, you should pass UserProfile directly to ChatDetailScreen
-            final profile = UserProfile(
-              id: widget.match['id'] ?? '',
-              name: widget.match['name'] ?? 'Unknown',
-              age: 24, // Fallback/Fetch needed
-              bio: "Hey there! I'm using FreeMatch.", // Fallback/Fetch needed
-              profession: "FreeMatch User", // Fallback/Fetch needed
-              imageUrls: [
-                if (widget.match['image'] != null &&
-                    widget.match['image']!.isNotEmpty)
-                  widget.match['image']!,
-              ],
-              interests: [],
-              location: "Nearby",
-              gender: "Female",
-              distance: 5,
-              lastActive: DateTime.now().millisecondsSinceEpoch,
-              joinedDate: DateTime.now().millisecondsSinceEpoch,
-            );
+          onTap: () async {
+            // Fetch real profile from Firestore to ensure we have all details
+            final profileId = widget.match['id'];
+            if (profileId != null) {
+              final userProfile = await ref
+                  .read(firestoreServiceProvider)
+                  .getUserProfile(profileId);
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PublicProfileScreen(profile: profile),
-              ),
-            );
+              if (userProfile != null && context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        PublicProfileScreen(profile: userProfile),
+                  ),
+                );
+              }
+            }
           },
           child: Row(
             children: [
@@ -691,9 +598,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ),
 
           // Pickers Area
-          if (_showEmoji) _buildEmojiPicker(),
-          if (_showGift) _buildGiftPicker(),
-          if (_showGif) _buildGifPicker(),
 
           // Input Bar
           Container(
@@ -709,31 +613,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     onPressed: _showImageSourceDialog,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.emoji_emotions_outlined),
-                    color: _showEmoji ? Colors.amber : Colors.grey,
-                    onPressed: () {
-                      _closePickers();
-                      setState(() => _showEmoji = !_showEmoji);
-                    },
+                    icon: const Icon(Icons.gif_box_outlined),
+                    color: Colors.pink,
+                    onPressed: _showGifPicker,
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.gif_box_outlined,
-                    ), // Using available icon, lucide had Clapperboard
-                    color: _showGif ? Colors.blue : Colors.grey,
-                    onPressed: () {
-                      _closePickers();
-                      setState(() => _showGif = !_showGif);
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.card_giftcard),
-                    color: _showGift ? Colors.pink : Colors.grey,
-                    onPressed: () {
-                      _closePickers();
-                      setState(() => _showGift = !_showGift);
-                    },
-                  ),
+
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -742,7 +626,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       ),
                       child: TextField(
                         controller: _textController,
-                        onTap: _closePickers,
+
                         style: const TextStyle(color: Colors.white),
                         decoration: const InputDecoration(
                           hintText: "Type a message...",
@@ -853,30 +737,46 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 children: [
                   // Content
                   if (msg.type == 'TEXT')
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isMe
-                            ? Colors.amber[700]
-                            : const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: isMe
-                              ? const Radius.circular(16)
-                              : Radius.zero,
-                          bottomRight: isMe
-                              ? Radius.zero
-                              : const Radius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        msg.text,
-                        style: const TextStyle(color: Colors.white),
-                      ),
+                    Builder(
+                      builder: (context) {
+                        // Check if text is only emojis
+                        final isEmojiOnly = RegExp(
+                          r'^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])+$',
+                        ).hasMatch(msg.text.replaceAll(' ', ''));
+
+                        return Container(
+                          padding: isEmojiOnly
+                              ? EdgeInsets.zero
+                              : const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                          decoration: isEmojiOnly
+                              ? null
+                              : BoxDecoration(
+                                  color: isMe
+                                      ? Colors.amber[700]
+                                      : const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(16),
+                                    topRight: const Radius.circular(16),
+                                    bottomLeft: isMe
+                                        ? const Radius.circular(16)
+                                        : Radius.zero,
+                                    bottomRight: isMe
+                                        ? Radius.zero
+                                        : const Radius.circular(16),
+                                  ),
+                                ),
+                          child: Text(
+                            msg.text,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isEmojiOnly ? 40 : 14,
+                            ),
+                          ),
+                        );
+                      },
                     )
                   else if (msg.type == 'GIFT')
                     Container(
@@ -920,6 +820,25 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           color: Colors.grey[900],
                           child: const Center(
                             child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          width: 200,
+                          height: 200,
+                          color: Colors.grey[900],
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.broken_image, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text(
+                                "Failed to load",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -990,142 +909,4 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // Assuming this replaces or appends for specific types
   // The original _buildMessageBubble handles 'TEXT', 'GIFT', 'GIF', 'IMAGE'.
   // We need to inject 'AUDIO' logic inside the first `children` list of the Column.
-
-  Widget _buildEmojiPicker() {
-    return Container(
-      height: 250,
-      color: const Color(0xFF0F172A),
-      child: GridView.builder(
-        padding: const EdgeInsets.all(10),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 7,
-        ),
-        itemCount: emojis.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              _textController.text += emojis[index];
-            },
-            child: Center(
-              child: Text(emojis[index], style: const TextStyle(fontSize: 24)),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildGiftPicker() {
-    return Container(
-      height: 250,
-      color: const Color(0xFF0F172A),
-      child: GridView.builder(
-        padding: const EdgeInsets.all(10),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-        ),
-        itemCount: gifts.length,
-        itemBuilder: (context, index) {
-          final gift = gifts[index];
-          return GestureDetector(
-            onTap: () =>
-                _handleSend(gift['name']!, type: 'GIFT', mediaUrl: gift['url']),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: gift['url']!,
-                    height: 40,
-                    width: 40,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    gift['name']!,
-                    style: const TextStyle(
-                      color: Colors.amber,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildGifPicker() {
-    // Filter logic
-    final gifs = _gifSearch.isEmpty
-        ? mockGifs
-        : mockGifs
-              .where(
-                (g) =>
-                    (g['tags'] as List<String>?)?.contains(_gifSearch) ?? false,
-              )
-              .toList();
-
-    return Container(
-      height: 250,
-      color: const Color(0xFF0F172A),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              onChanged: (val) => setState(() => _gifSearch = val),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: "Search GIPHY...",
-                hintStyle: const TextStyle(color: Colors.grey),
-                filled: true,
-                fillColor: const Color(0xFF1E293B),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 1.5,
-              ),
-              itemCount: gifs.length,
-              itemBuilder: (context, index) {
-                final gif = gifs[index];
-                return GestureDetector(
-                  onTap: () =>
-                      _handleSend('', type: 'GIF', mediaUrl: gif['url']),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: gif['url']!,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

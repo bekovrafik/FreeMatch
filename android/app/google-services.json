@@ -8,9 +8,28 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:494411912282:android:43e256f9c3535357e93463",
+        "android_client_info": {
+          "package_name": "com.freematch.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnir2rGVEJqR13Y02rIQRupzPFy8WJklY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:494411912282:android:6a3a4d144d48962ee93463",
         "android_client_info": {
-          "package_name": "com.freematch.freematch"
+          "package_name": "com.freematch.app"
         }
       },
       "oauth_client": [],

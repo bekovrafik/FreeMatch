@@ -396,4 +396,29 @@ class FirestoreService {
 
     await batch.commit();
   }
+
+  Future<void> purgeAllUsers() async {
+    try {
+      final snapshot = await _firestore.collection('users').get();
+      final batch = _firestore.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      debugPrint("DEBUG: PURGED ALL USERS");
+    } catch (e) {
+      debugPrint("DEBUG: Failed to purge users: $e");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllUsersDebug() async {
+    final snapshot = await _firestore.collection('users').get();
+    return snapshot.docs.map((d) {
+      final data = d.data();
+      print(
+        "DEBUG: User ${data['name']} Age Type: ${data['age'].runtimeType} Value: ${data['age']}",
+      );
+      return {...data, 'id': d.id};
+    }).toList();
+  }
 }

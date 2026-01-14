@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../services/auth_service.dart';
+import 'forgot_password_screen.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -16,6 +18,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       TextEditingController(); // Added for "Create Account" parity
   bool _isLogin = true;
   bool _isLoading = false;
+
+  Future<void> _guestLogin() async {
+    setState(() => _isLoading = true);
+    final authService = ref.read(authServiceProvider);
+    try {
+      await authService.signInAnonymously();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _submit() async {
     setState(() => _isLoading = true);
@@ -68,7 +86,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               // Header
               Text(
                 _isLogin ? 'Welcome Back' : 'Create Account',
-                textAlign: TextAlign.start,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 32,
@@ -81,7 +99,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 _isLogin
                     ? 'Enter your details to sign in.'
                     : 'Join the community for free.',
-                textAlign: TextAlign.start,
+                textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white54, fontSize: 16),
               ),
               const SizedBox(height: 48),
@@ -117,7 +135,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 icon: Icons.lock_outline,
                 isPassword: true,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 16),
+
+              // Forgot Password (Sign In Only)
+              if (_isLogin)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: Color(0xFFF59E0B),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 24),
 
               // Gradient Button
               Container(
@@ -205,6 +248,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ],
               ),
+
+              if (_isLogin) ...[
+                const SizedBox(height: 32),
+                Center(
+                  child: TextButton(
+                    onPressed: _isLoading ? null : _guestLogin,
+                    child: const Text(
+                      'Continue as Guest',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 48),
 

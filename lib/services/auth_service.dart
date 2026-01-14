@@ -51,6 +51,18 @@ class AuthService {
     }
   }
 
+  Future<void> signInAnonymously() async {
+    final credential = await _firebaseAuth.signInAnonymously();
+    if (credential.user != null) {
+      // Seed matches for the new guest user automatically
+      try {
+        await DbSeeder.seedMatchesForUser(credential.user!.uid);
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
   }
@@ -60,5 +72,9 @@ class AuthService {
     if (user != null) {
       await user.delete();
     }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _firebaseAuth.sendPasswordResetEmail(email: email);
   }
 }

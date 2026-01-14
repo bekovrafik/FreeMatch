@@ -24,6 +24,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   // Step 1: Basic Info
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _locationController =
+      TextEditingController(); // Added Location
   DateTime? _dob;
   String _gender = 'WOMEN'; // Default
 
@@ -37,6 +39,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   String? _sign;
   String? _religion;
   String? _lookingFor;
+  final List<String> _selectedInterests = []; // Added Interests
 
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _speaksController =
@@ -50,6 +53,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
+    _locationController.dispose(); // Dispose location
     _heightController.dispose();
     _speaksController.dispose();
     super.dispose();
@@ -84,6 +88,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         CustomToast.show(context, "Please enter your name", isError: true);
         return;
       }
+      if (_locationController.text.trim().isEmpty) {
+        CustomToast.show(
+          context,
+          "Please enter your city/location",
+          isError: true,
+        );
+        return;
+      }
       if (_dob == null) {
         CustomToast.show(context, "Please enter your birthday", isError: true);
         return;
@@ -100,7 +112,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       setState(() => _currentStep++);
     } else if (_currentStep == 1) {
       // Details Step
-      // Validation optional or basic
+      if (_selectedInterests.length < 3) {
+        CustomToast.show(context, "Select at least 3 interests", isError: true);
+        return;
+      }
       setState(() => _currentStep++);
     } else if (_currentStep == 2) {
       if (_photos.where((p) => p != null).isEmpty) {
@@ -148,9 +163,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         gender: _gender,
         bio: _bioController.text.trim(),
         imageUrls: imageUrls,
-        location: "Unknown", // Can add Geo later
+        location: _locationController.text.trim(), // Use input location
         profession: "",
-        interests: [],
+        interests: _selectedInterests, // Use input interests
         distance: 0,
         lastActive: DateTime.now().millisecondsSinceEpoch,
         joinedDate: DateTime.now().millisecondsSinceEpoch,
@@ -270,6 +285,21 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             ),
           ),
           const SizedBox(height: 20),
+          TextField(
+            controller: _locationController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: "Location (City, Country)",
+              labelStyle: TextStyle(color: Colors.grey[400]),
+              filled: true,
+              fillColor: const Color(0xFF1E293B),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           GestureDetector(
             onTap: () async {
               final date = await showDatePicker(
@@ -365,6 +395,60 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             "Yes",
           ], (val) => setState(() => _smokes = val)),
           const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          // Interests Section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Interests (Select at least 3)",
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: kInterestOptions.map((interest) {
+                    final isSelected = _selectedInterests.contains(interest);
+                    return FilterChip(
+                      label: Text(interest),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            if (_selectedInterests.length < 10) {
+                              _selectedInterests.add(interest);
+                            }
+                          } else {
+                            _selectedInterests.remove(interest);
+                          }
+                        });
+                      },
+                      backgroundColor: const Color(0xFF0F172A),
+                      selectedColor: Colors.amber,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.black : Colors.white,
+                      ),
+                      checkmarkColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected ? Colors.amber : Colors.grey[700]!,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           _buildTextField("Height (e.g. 170cm)", _heightController),
           const SizedBox(height: 16),

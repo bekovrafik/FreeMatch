@@ -18,9 +18,13 @@ class AdConstants {
 
   static String get rewardedInterstitialAdUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-7841436065695087/6044692180'; // Provided Real ID
+      return kReleaseMode
+          ? 'ca-app-pub-7841436065695087/6044692180' // Production
+          : 'ca-app-pub-3940256099942544/5354046379'; // Test ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-7841436065695087/4785265616'; // Provided Real ID
+      return kReleaseMode
+          ? 'ca-app-pub-7841436065695087/4785265616' // Production
+          : 'ca-app-pub-3940256099942544/6978759866'; // Test ID
     } else {
       throw UnsupportedError('Unsupported platform');
     }

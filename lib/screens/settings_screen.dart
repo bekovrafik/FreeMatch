@@ -93,91 +93,114 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
-      appBar: AppBar(
-        title: const Text("Settings", style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF0F172A),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: ListView(
-        children: [
-          const SizedBox(height: 20),
-          _buildSectionHeader("DISCOVERY"),
-          _buildListTile(
-            context,
-            icon: Icons.tune,
-            title: "Discovery Settings",
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const DiscoverySettingsModal(),
-              );
-            },
-          ),
-
-          const Divider(color: Color(0xFF1E293B)),
-          _buildSectionHeader("COMMUNITY"),
-          _buildListTile(
-            context,
-            icon: Icons.block,
-            title: "Blocked Users",
-            onTap: () => Navigator.push(
+      body: SafeArea(
+        child: ListView(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Back Button
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8), // Touch target
+                      alignment: Alignment.centerLeft,
+                      child: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Settings",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildSectionHeader("DISCOVERY"),
+            _buildListTile(
               context,
-              MaterialPageRoute(builder: (_) => const BlockedUsersScreen()),
+              icon: Icons.tune,
+              title: "Discovery Settings",
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const DiscoverySettingsModal(),
+                );
+              },
             ),
-          ),
 
-          const Divider(color: Color(0xFF1E293B)),
-          _buildSectionHeader("LEGAL & SUPPORT"),
-          _buildListTile(
-            context,
-            icon: Icons.privacy_tip_outlined,
-            title: "Privacy Policy",
-            onTap: () => Navigator.push(
+            const Divider(color: Color(0xFF1E293B)),
+            _buildSectionHeader("COMMUNITY"),
+            _buildListTile(
               context,
-              MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              icon: Icons.block,
+              title: "Blocked Users",
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BlockedUsersScreen()),
+              ),
             ),
-          ),
-          _buildListTile(
-            context,
-            icon: Icons.mail_outline,
-            title: "Contact Support",
-            onTap: () => Navigator.push(
+
+            const Divider(color: Color(0xFF1E293B)),
+            _buildSectionHeader("LEGAL & SUPPORT"),
+            _buildListTile(
               context,
-              MaterialPageRoute(builder: (_) => const ContactSupportScreen()),
+              icon: Icons.privacy_tip_outlined,
+              title: "Privacy Policy",
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              ),
             ),
-          ),
-
-          const Divider(color: Color(0xFF1E293B)),
-          const SizedBox(height: 40),
-
-          _buildListTile(
-            context,
-            icon: Icons.logout,
-            title: "Logout",
-            color: Colors.white,
-            onTap: () => _logout(context, ref),
-          ),
-          _buildListTile(
-            context,
-            icon: Icons.delete_forever,
-            title: "Delete Account",
-            color: Colors.red, // Danger
-            onTap: () => _deleteAccount(context, ref),
-          ),
-
-          const SizedBox(height: 40),
-          const SizedBox(height: 40),
-
-          const SizedBox(height: 40),
-          const Center(
-            child: Text(
-              "Version 1.0.0 (Build 2025)",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+            _buildListTile(
+              context,
+              icon: Icons.mail_outline,
+              title: "Contact Support",
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ContactSupportScreen()),
+              ),
             ),
-          ),
-        ],
+
+            const Divider(color: Color(0xFF1E293B)),
+            const SizedBox(height: 40),
+
+            _buildListTile(
+              context,
+              icon: Icons.logout,
+              title: "Logout",
+              color: Colors.white,
+              onTap: () => _logout(context, ref),
+            ),
+            _buildListTile(
+              context,
+              icon: Icons.delete_forever,
+              title: "Delete Account",
+              color: Colors.red, // Danger
+              onTap: () => _deleteAccount(context, ref),
+            ),
+
+            const SizedBox(height: 40),
+            const SizedBox(height: 40),
+
+            const SizedBox(height: 40),
+            const Center(
+              child: Text(
+                "Version 1.0.0 (Build 2025)",
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

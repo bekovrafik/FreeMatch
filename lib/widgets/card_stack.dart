@@ -216,24 +216,32 @@ class _CardStackState extends ConsumerState<CardStack>
     });
   }
 
-  void _showMatchOverlay(UserProfile profile) {
+  void _showMatchOverlay(UserProfile profile) async {
+    final currentUserAuth = ref.read(authServiceProvider).currentUser;
+    if (currentUserAuth == null) return;
+
+    // Fetch full profile for image
+    final currentProfile = await ref
+        .read(firestoreServiceProvider)
+        .getUserProfile(currentUserAuth.uid);
+
+    if (currentProfile == null || !mounted) return;
+
     showDialog(
       context: context,
       useSafeArea: false,
       barrierDismissible: false,
       builder: (dialogContext) => MatchOverlay(
         matchedProfile: profile,
+        currentProfile: currentProfile,
         onKeepSwiping: () => Navigator.of(dialogContext).pop(),
         onSendMessage: () async {
           Navigator.of(dialogContext).pop();
 
-          final currentUser = ref.read(authServiceProvider).currentUser;
-          if (currentUser == null) return;
-
           try {
             final chatId = await ref
                 .read(chatServiceProvider)
-                .createChat(currentUser.uid, profile.id);
+                .createChat(currentUserAuth.uid, profile.id);
 
             if (mounted) {
               Navigator.of(context, rootNavigator: true).push(

@@ -24,6 +24,25 @@ class FeedService {
     final prefs = userState.preferences;
 
     if (user != null) {
+      _activeProfiles.clear(); // Clear existing profiles to prevent duplicates
+
+      // DEBUG: List ALL users in DB to verify existence
+      try {
+        final allDocs = await firestore.getAllUsersDebug();
+        print('DEBUG: TOTAL USERS IN DB: ${allDocs.length}');
+        for (var d in allDocs) {
+          print(
+            'DEBUG: User: ${d['name']} (${d['gender']}, ${d['age']}y) ID: ${d['id']}',
+          );
+        }
+      } catch (e) {
+        print('DEBUG: Failed to list users: $e');
+      }
+
+      print(
+        'DEBUG: Filters - Gender: ${prefs.gender}, Age: ${prefs.ageRange}, Location: ${prefs.location}, Dist: ${prefs.distance}',
+      );
+
       var profiles = await firestore.fetchProfiles(
         currentUserId: user.uid,
         gender: prefs.gender,
@@ -31,23 +50,30 @@ class FeedService {
         maxAge: prefs.ageRange[1],
       );
 
+      print(
+        'DEBUG: Fetched ${profiles.length} profiles: ${profiles.map((p) => p.name).join(', ')}',
+      );
+
       // AUTO-SEED: If no profiles found, generate demo data
-      if (profiles.isEmpty) {
-        await firestore.seedDemoProfiles(
-          gender: prefs.gender,
-          location: prefs.location,
-        );
-        // Re-fetch after seeding
-        profiles = await firestore.fetchProfiles(
-          currentUserId: user.uid,
-          gender: prefs.gender,
-          minAge: prefs.ageRange[0],
-          maxAge: prefs.ageRange[1],
-        );
-      }
+      // if (profiles.isEmpty) {
+      //   await firestore.seedDemoProfiles(
+      //     gender: prefs.gender,
+      //     location: prefs.location,
+      //   );
+      //   // Re-fetch after seeding
+      //   profiles = await firestore.fetchProfiles(
+      //     currentUserId: user.uid,
+      //     gender: prefs.gender,
+      //     minAge: prefs.ageRange[0],
+      //     maxAge: prefs.ageRange[1],
+      //   );
+      // }
 
       if (profiles.isNotEmpty) {
         final filteredProfiles = profiles.where((profile) {
+          // 0. Safety Check: Never show current user
+          if (profile.id == user.uid) return false;
+
           // 3. Distance Filter (Naive check against profile.distance)
           if (profile.distance > prefs.distance) {
             return false;

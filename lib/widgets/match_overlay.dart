@@ -3,18 +3,16 @@ import 'package:flutter/material.dart';
 import '../models/user_profile.dart'; // Ensure UserProfile is available
 import 'package:cached_network_image/cached_network_image.dart';
 
-// HARDCODED Current User Image for Demo (Matching React const CURRENT_USER)
-const String _kCurrentUserImage =
-    "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80";
-
 class MatchOverlay extends StatefulWidget {
   final UserProfile matchedProfile;
+  final UserProfile currentProfile;
   final VoidCallback onKeepSwiping;
   final VoidCallback onSendMessage;
 
   const MatchOverlay({
     super.key,
     required this.matchedProfile,
+    required this.currentProfile,
     required this.onKeepSwiping,
     required this.onSendMessage,
   });
@@ -148,7 +146,9 @@ class _MatchOverlayState extends State<MatchOverlay>
                       child: Transform.rotate(
                         angle: -10 * math.pi / 180,
                         child: _buildProfileImage(
-                          _kCurrentUserImage,
+                          widget.currentProfile.imageUrls.isNotEmpty
+                              ? widget.currentProfile.imageUrls.first
+                              : "https://via.placeholder.com/500", // Fallback
                           Colors.pink,
                         ),
                       ),

@@ -134,7 +134,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             slivers: [
               // 1. Hero Image App Bar
               SliverAppBar(
-                expandedHeight: MediaQuery.of(context).size.height * 0.6,
+                expandedHeight: MediaQuery.of(context).size.height * 0.45,
                 backgroundColor: const Color(0xFF020617),
                 pinned: true,
                 leading: IconButton(
