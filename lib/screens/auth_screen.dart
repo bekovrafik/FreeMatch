@@ -252,16 +252,61 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               if (_isLogin) ...[
                 const SizedBox(height: 32),
                 Center(
-                  child: TextButton(
-                    onPressed: _isLoading ? null : _guestLogin,
-                    child: const Text(
-                      'Continue as Guest',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                  child: Column(
+                    children: [
+                      TextButton(
+                        onPressed: _isLoading ? null : _guestLogin,
+                        child: const Text(
+                          'Continue as Guest',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      // Google Sign In Button
+                      OutlinedButton.icon(
+                        onPressed: _isLoading
+                            ? null
+                            : () async {
+                                setState(() => _isLoading = true);
+                                try {
+                                  await ref
+                                      .read(authServiceProvider)
+                                      .signInWithGoogle();
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Google Sign-In Error: $e',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) {
+                                    setState(() => _isLoading = false);
+                                  }
+                                }
+                              },
+                        icon: const Icon(Icons.g_mobiledata, size: 28), // Or generic
+                        label: const Text('Sign in with Google'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white24),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

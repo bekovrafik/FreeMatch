@@ -78,6 +78,10 @@ class _FreeMatchAppState extends ConsumerState<FreeMatchApp> {
     return authState.when(
       data: (user) {
         if (user != null) {
+          // Initialize Notifications for User (Save Token & Subscribe)
+          ref.read(notificationServiceProvider).saveToken(user.uid);
+          ref.read(notificationServiceProvider).subscribeToTopic('daily_rewards');
+
           // Check if profile exists and is complete
           final profileAsync = ref.watch(currentUserProfileProvider);
 
