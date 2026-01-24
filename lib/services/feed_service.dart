@@ -156,7 +156,7 @@ class FeedService {
     } else {
       // It's an Ad
       // Return generic Ad Placeholder
-      // We don't need data, the AdCard will handle loading the ad
+      // We don't need data, the NativeAdCard will handle loading the ad
       return CardItem(type: CardType.ad, data: null, uniqueId: 'ad-$index');
     }
   }

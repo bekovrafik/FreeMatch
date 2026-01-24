@@ -9,6 +9,7 @@ import '../widgets/match_overlay.dart';
 import '../providers/feed_provider.dart';
 import 'profile_card.dart';
 import 'ad_card.dart';
+import 'native_ad_card.dart';
 
 import 'empty_state_card.dart';
 import '../services/chat_service.dart';
@@ -564,7 +565,7 @@ class _CardStackState extends ConsumerState<CardStack>
     if (item.type == CardType.profile) {
       return ProfileCard(profile: item.data as UserProfile);
     } else if (item.type == CardType.ad) {
-      return AdCard(cardItem: item);
+      return NativeAdCard(cardItem: item);
     } else {
       return Container(color: Colors.transparent);
     }
