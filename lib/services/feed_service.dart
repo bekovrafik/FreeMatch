@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/card_item.dart';
 import '../models/user_profile.dart';
@@ -29,17 +30,17 @@ class FeedService {
       // DEBUG: List ALL users in DB to verify existence
       try {
         final allDocs = await firestore.getAllUsersDebug();
-        print('DEBUG: TOTAL USERS IN DB: ${allDocs.length}');
+        debugPrint('DEBUG: TOTAL USERS IN DB: ${allDocs.length}');
         for (var d in allDocs) {
-          print(
+          debugPrint(
             'DEBUG: User: ${d['name']} (${d['gender']}, ${d['age']}y) ID: ${d['id']}',
           );
         }
       } catch (e) {
-        print('DEBUG: Failed to list users: $e');
+        debugPrint('DEBUG: Failed to list users: $e');
       }
 
-      print(
+      debugPrint(
         'DEBUG: Filters - Gender: ${prefs.gender}, Age: ${prefs.ageRange}, Location: ${prefs.location}, Dist: ${prefs.distance}',
       );
 
@@ -50,7 +51,7 @@ class FeedService {
         maxAge: prefs.ageRange[1],
       );
 
-      print(
+      debugPrint(
         'DEBUG: Fetched ${profiles.length} profiles: ${profiles.map((p) => p.name).join(', ')}',
       );
 

@@ -271,28 +271,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         onPressed: _isLoading
                             ? null
                             : () async {
+                                if (!mounted) return;
+
                                 setState(() => _isLoading = true);
                                 try {
                                   await ref
                                       .read(authServiceProvider)
                                       .signInWithGoogle();
                                 } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Google Sign-In Error: $e',
-                                        ),
-                                      ),
-                                    );
-                                  }
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Google Sign-In Error: $e'),
+                                    ),
+                                  );
                                 } finally {
                                   if (mounted) {
                                     setState(() => _isLoading = false);
                                   }
                                 }
                               },
-                        icon: const Icon(Icons.g_mobiledata, size: 28), // Or generic
+                        icon: const Icon(
+                          Icons.g_mobiledata,
+                          size: 28,
+                        ), // Or generic
                         label: const Text('Sign in with Google'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,

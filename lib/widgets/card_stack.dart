@@ -8,7 +8,6 @@ import '../models/user_profile.dart';
 import '../widgets/match_overlay.dart';
 import '../providers/feed_provider.dart';
 import 'profile_card.dart';
-import 'ad_card.dart';
 import 'native_ad_card.dart';
 
 import 'empty_state_card.dart';

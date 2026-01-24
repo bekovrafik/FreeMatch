@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_profile.dart';
 
@@ -415,7 +415,7 @@ class FirestoreService {
     final snapshot = await _firestore.collection('users').get();
     return snapshot.docs.map((d) {
       final data = d.data();
-      print(
+      debugPrint(
         "DEBUG: User ${data['name']} Age Type: ${data['age'].runtimeType} Value: ${data['age']}",
       );
       return {...data, 'id': d.id};

@@ -470,7 +470,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     if (gif != null && mounted) {
       // Use fixed_width for better performance/size in chat
-      final url = gif.images?.fixedWidth?.url ?? gif.images?.original?.url;
+      final url = gif.images?.fixedWidth.url ?? gif.images?.original?.url;
       if (url != null) {
         _handleSend("Sent a GIF", type: 'GIF', mediaUrl: url);
       }
