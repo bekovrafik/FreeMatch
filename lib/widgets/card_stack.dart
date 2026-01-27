@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/user_provider.dart';
 import '../models/card_item.dart';
@@ -15,6 +14,7 @@ import '../services/chat_service.dart';
 import '../services/auth_service.dart';
 import '../screens/chat_detail_screen.dart';
 import '../services/firestore_service.dart';
+import '../providers/home_provider.dart';
 
 class CardStack extends ConsumerStatefulWidget {
   const CardStack({super.key});
@@ -83,8 +83,48 @@ class _CardStackState extends ConsumerState<CardStack>
     // If animating, don't interrupt unless it's spring back (which clears itself)
     // Actually we can interrupt
 
+    // SWIPE LIMIT CHECK
+    final swipeNotifier = ref.read(swipeLimitProvider.notifier);
+    if (!swipeNotifier.canSwipe &&
+        (direction.dx > 0 || direction.dx < 0 || isSuperLike)) {
+      // Only block swipes that consume limits (Usually Likes/Nopes/SuperLikes on PROFILES)
+      // Ads might be exempt? Let's block all for simplicity, or just Profiles.
+      // User requirement: "Implement daily 25 swaps".
+
+      // Stop animation/drag
+      _dragOffset = Offset.zero;
+      _dragAngle = 0;
+      _animationController.reset();
+      setState(() {});
+
+      // Show Limit Dialog
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Out of Swipes!"),
+          content: const Text(
+            "You have used your 25 daily swipes. Watch a short video to get 25 more?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx); // Close dialog first
+                swipeNotifier.watchAdForSwipes(context);
+              },
+              child: const Text("Watch Ad"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final endOffset = isSuperLike
-        ? Offset(0, -MediaQuery.of(context).size.height) // Fly up off screen
+        ? Offset(0, -MediaQuery.of(context).size.height)
         : Offset(
             direction.dx > 0
                 ? MediaQuery.of(context).size.width * 1.5
@@ -140,6 +180,9 @@ class _CardStackState extends ConsumerState<CardStack>
                   isSuperLike: true,
                 )
                 .then((_) {
+                  // Decrement Swipe Count
+                  ref.read(swipeLimitProvider.notifier).decrementSwipe();
+
                   // OPTIMISTIC MATCH (Super Like)
                   // Cloud function creates match, but we can verify client side
                   // or just wait. For now, just show overlay if verified.
@@ -169,6 +212,9 @@ class _CardStackState extends ConsumerState<CardStack>
                 firestoreService
                     .recordSwipe(currentUser.uid, profile.id, true)
                     .then((_) {
+                      // Decrement Swipe Count
+                      ref.read(swipeLimitProvider.notifier).decrementSwipe();
+
                       // SERVER-SIDE MATCHING ARCHITECTURE
                       // We do NOT create the chat here. The Cloud Function does.
                       // We only show the UI overlay if we know they verified us (Optimistic).
@@ -185,6 +231,8 @@ class _CardStackState extends ConsumerState<CardStack>
                 ref
                     .read(firestoreServiceProvider)
                     .recordSwipe(currentUser.uid, profile.id, false);
+                // Decrement Swipe Count (Nopes count too usually? Yes "25 swaps")
+                ref.read(swipeLimitProvider.notifier).decrementSwipe();
                 HapticFeedback.lightImpact();
               }
             }
@@ -193,12 +241,10 @@ class _CardStackState extends ConsumerState<CardStack>
           // --- AD SWIPE ---
           else if (topCard.type == CardType.ad) {
             if (direction.dx > 0) {
-              // SWIPE RIGHT -> Open Link
-              final ad = topCard.data as AdContent;
-              launchUrl(
-                Uri.parse(ad.linkUrl),
-                mode: LaunchMode.externalApplication,
-              );
+              // SWIPE RIGHT -> Like/Dismiss (Do NOT auto-open)
+              // AdMob policy discourages accidental clicks via swipe.
+              // User must explicitly tap the Native Ad to open it.
+              notifier.popCard();
             }
             // SWIPE LEFT -> Dismiss (Do nothing else)
             notifier.popCard();

@@ -10,7 +10,7 @@ import '../services/firestore_service.dart';
 import 'chat_detail_screen.dart';
 import 'likes_screen.dart';
 import '../providers/unlocked_profiles_provider.dart';
-import '../services/admob_service.dart';
+import '../providers/match_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -20,8 +20,6 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-  bool _isLoadingAd = false;
-
   void _openChat(BuildContext context, Map<String, dynamic> match) {
     Navigator.push(
       context,
@@ -33,36 +31,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _showAd(String profileId) {
-    if (_isLoadingAd) return;
-    setState(() => _isLoadingAd = true);
-
-    ref
-        .read(admobServiceProvider)
-        .loadRewardedInterstitialAd(
-          onAdLoaded: (ad) {
-            setState(() => _isLoadingAd = false);
-            ad.show(
-              onUserEarnedReward: (adWithoutView, reward) {
-                ref.read(unlockedProfilesProvider.notifier).unlock(profileId);
-              },
-            );
-          },
-          onAdFailedToLoad: (error) {
-            setState(() => _isLoadingAd = false);
-            debugPrint('Ad failed to load: $error');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Failed to load ad. Please try again."),
-              ),
-            );
-          },
-        );
+    ref.read(matchProvider.notifier).showAdToUnlock(context, profileId);
   }
 
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authServiceProvider).currentUser;
     final unlockedProfiles = ref.watch(unlockedProfilesProvider);
+    final matchState = ref.watch(matchProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF020617), // Slate-950
@@ -73,17 +49,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               // Header & Search
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Matches",
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Matches",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.sort, color: Colors.white),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -95,14 +85,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             color: Colors.grey[600],
                           ),
                           filled: true,
-                          fillColor: const Color(0xFF1E293B), // Slate-800
+                          fillColor: const Color(0xFF1E293B),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 0,
-                          ),
+                          contentPadding: EdgeInsets.zero,
                         ),
                         style: const TextStyle(color: Colors.white),
                       ),
@@ -478,10 +466,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   },
                 ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
             ],
           ),
-          if (_isLoadingAd)
+          if (matchState.isLoadingAd)
             Container(
               color: Colors.black54,
               child: const Center(

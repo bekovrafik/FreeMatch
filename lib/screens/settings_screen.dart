@@ -20,6 +20,8 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _deleteAccount(BuildContext context, WidgetRef ref) {
+    final passwordController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -28,18 +30,49 @@ class SettingsScreen extends ConsumerWidget {
           "Delete Account?",
           style: TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          "Are you sure you want to delete your account? This action is irreversible and all your data (matches, messages) will be lost.",
-          style: TextStyle(color: Colors.grey),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Action irreversible. Enter password to confirm:",
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                labelStyle: TextStyle(color: Colors.grey),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.red),
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(context); // Close dialog
+
+              final password = passwordController.text;
+              if (password.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Password required")),
+                );
+                return;
+              }
 
               final currentUser = ref.read(authServiceProvider).currentUser;
               if (currentUser == null) return;
@@ -51,7 +84,7 @@ class SettingsScreen extends ConsumerWidget {
                     .deleteUserData(currentUser.uid);
 
                 // 2. Delete Auth Account
-                await ref.read(authServiceProvider).deleteAccount();
+                await ref.read(authServiceProvider).deleteAccount(password);
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -59,30 +92,17 @@ class SettingsScreen extends ConsumerWidget {
                       content: Text("Account deleted successfully."),
                     ),
                   );
-                  // Nav to root is handled by authStateChanges stream usually,
-                  // but we can force pop just in case.
                   Navigator.of(context).popUntil((route) => route.isFirst);
                 }
               } catch (e) {
                 if (context.mounted) {
-                  // Handle requires-recent-login
-                  if (e.toString().contains('requires-recent-login')) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Security: Please log out and log in again to delete account.",
-                        ),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Error deleting account: $e")),
-                    );
-                  }
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Error: $e")));
                 }
               }
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

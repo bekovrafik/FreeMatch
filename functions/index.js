@@ -128,20 +128,27 @@ exports.onMessageCreated = functions.firestore
 
         if (!recipientId) return;
 
-        // Fetch recipient's token using get() which returns a Promise<DocumentSnapshot>
-        // Use await to resolve the promise
-        const recipientDoc = await db.collection("users").doc(recipientId).get();
+        // Fetch recipient's token and sender's name (for better notification)
+        const recipientDocPromise = db.collection("users").doc(recipientId).get();
+        const senderDocPromise = db.collection("users").doc(senderId).get();
+
+        const [recipientDoc, senderDoc] = await Promise.all([recipientDocPromise, senderDocPromise]);
+        
         const recipientData = recipientDoc.data();
+        const senderData = senderDoc.data();
+        const senderName = senderData ? senderData.name : "Someone";
 
         if (recipientData && recipientData.fcmToken) {
             const payload = {
                 notification: {
-                    title: "New Message 💬",
+                    title: `New Message from ${senderName}`,
                     body: text,
                 },
                 data: {
                     type: "chat",
-                    matchId: matchId,
+                    chatId: matchId, // Critical for deep linking (main.dart expects chatId)
+                    senderId: senderId, // Critical for identifying the other user
+                    senderName: senderName,
                 },
             };
             await admin.messaging().sendToDevice(recipientData.fcmToken, payload);

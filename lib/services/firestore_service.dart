@@ -44,36 +44,54 @@ class FirestoreService {
       }
 
       final snapshot = await query.get();
+      if (snapshot.docs.isEmpty) return [];
 
-      // 1. Fetch "received_likes" for current user to identify who liked them
-      final receivedLikesSnapshot = await _firestore
-          .collection('users')
-          .doc(currentUserId)
-          .collection('received_likes')
-          .get();
+      final profileDocs = snapshot.docs
+          .where((doc) => doc.id != currentUserId)
+          .toList();
+      if (profileDocs.isEmpty) return [];
 
-      // Map of ID -> isSuperLike
+      // 2. Optimized: Check "Like Status" ONLY for the fetched profiles (Max 20 reads)
+      // Instead of reading ALL received_likes (Potential 1000+ reads)
+      final profileIds = profileDocs.map((doc) => doc.id).toList();
       final Map<String, bool> likedStatus = {};
-      for (var doc in receivedLikesSnapshot.docs) {
-        likedStatus[doc.id] = doc.data()['isSuperLike'] == true;
+
+      // Firestore 'whereIn' is limited to 10 values. We must chunk.
+      // Or we can just do parallel get()s since 20 is small.
+      // Parallel get() is mostly cleaner and robust for Document ID checks.
+      // Cost: 20 reads per page load. Much reuse/caching potential.
+
+      // Let's use Future.wait for parallel reads
+      final checkLikesFutures = profileIds.map(
+        (id) => _firestore
+            .collection('users')
+            .doc(currentUserId)
+            .collection('received_likes')
+            .doc(id)
+            .get(),
+      );
+
+      final likeSnapshots = await Future.wait(checkLikesFutures);
+
+      for (var doc in likeSnapshots) {
+        if (doc.exists) {
+          likedStatus[doc.id] = doc.data()?['isSuperLike'] == true;
+        }
       }
 
-      return snapshot.docs
-          .where((doc) => doc.id != currentUserId) // Filter out self locally
-          .map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final userId = doc.id;
-            final didLikeMe = likedStatus.containsKey(userId);
-            final wasSuper = likedStatus[userId] == true;
+      return profileDocs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final userId = doc.id;
+        final didLikeMe = likedStatus.containsKey(userId);
+        final wasSuper = likedStatus[userId] == true;
 
-            return UserProfile.fromJson({
-              ...data,
-              'id': userId,
-              'hasLikedCurrentUser': didLikeMe,
-              'isSuperLike': wasSuper, // Pass this context to the profile
-            });
-          })
-          .toList();
+        return UserProfile.fromJson({
+          ...data,
+          'id': userId,
+          'hasLikedCurrentUser': didLikeMe,
+          'isSuperLike': wasSuper, // Pass this context to the profile
+        });
+      }).toList();
     } catch (e) {
       debugPrint("Error fetching profiles: $e");
       return [];
@@ -143,6 +161,9 @@ class FirestoreService {
 
   // Record a Swipe (Like or Dislike)
   // Matching is now handled server-side by Cloud Functions
+  // Record a Swipe (Like or Dislike)
+  // Matching is now handled server-side by Cloud Functions
+  // BUT: We want to clean up the "Who Likes Me" list locally/immediately for UX.
   Future<void> recordSwipe(
     String currentUserId,
     String targetUserId,
@@ -163,7 +184,14 @@ class FirestoreService {
             'isSuperLike': isSuperLike,
           });
 
-      // No client-side match check.
+      // 2. [UX FIX] Remove from "received_likes" so they disappear from "Who Likes Me"
+      // This makes the list act like an Inbox.
+      await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('received_likes')
+          .doc(targetUserId)
+          .delete();
     } catch (e) {
       debugPrint('Error recording swipe: $e');
     }
@@ -176,6 +204,7 @@ class FirestoreService {
         .doc(currentUserId)
         .collection('received_likes')
         .orderBy('timestamp', descending: true)
+        .limit(20) // Performance Limit
         .snapshots()
         .asyncMap((snapshot) async {
           final userIds = snapshot.docs.map((doc) => doc.id).toList();

@@ -498,27 +498,75 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             left: 20,
             right: 20,
             child: widget.profile.hasLikedCurrentUser
-                ? ElevatedButton(
-                    onPressed: _handleMatch,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEA580C), // Orange
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                ? Row(
+                    children: [
+                      // Pass Button
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final currentUser = ref
+                                .read(authServiceProvider)
+                                .currentUser;
+                            if (currentUser != null) {
+                              await ref
+                                  .read(firestoreServiceProvider)
+                                  .recordSwipe(
+                                    currentUser.uid,
+                                    widget.profile.id,
+                                    false, // Dislike/Pass
+                                  );
+                              if (context.mounted) {
+                                CustomToast.show(context, "Passed");
+                                Navigator.pop(context);
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(
+                              0xFF334155,
+                            ), // Slate-700
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 5,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.red,
+                            size: 28,
+                          ),
+                        ),
                       ),
-                      elevation: 10,
-                      shadowColor: const Color(
-                        0xFFEA580C,
-                      ).withValues(alpha: 0.5),
-                    ),
-                    child: Text(
-                      "Match with ${widget.profile.name}",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(width: 16),
+                      // Match Button
+                      Expanded(
+                        flex: 3,
+                        child: ElevatedButton(
+                          onPressed: _handleMatch,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA580C), // Orange
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 10,
+                            shadowColor: const Color(
+                              0xFFEA580C,
+                            ).withValues(alpha: 0.5),
+                          ),
+                          child: Text(
+                            "Match with ${widget.profile.name.split(' ')[0]}",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   )
                 : ElevatedButton(
                     onPressed: () => Navigator.pop(context),

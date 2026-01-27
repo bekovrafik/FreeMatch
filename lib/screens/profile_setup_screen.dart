@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
-import '../services/storage_service.dart';
 import '../models/user_profile.dart';
 import '../widgets/custom_toast.dart';
 import '../constants/profile_options.dart';
+import '../providers/profile_setup_provider.dart';
+import '../theme/app_colors.dart';
 import 'home_screen.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -19,7 +19,6 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   int _currentStep = 0;
-  bool _isLoading = false;
 
   // Step 1: Basic Info
   final TextEditingController _nameController = TextEditingController();
@@ -138,77 +137,69 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _submitProfile() async {
-    setState(() => _isLoading = true);
+    // Construct Initial Profile (images will be filled by provider)
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) return;
 
-    try {
-      // 1. Upload Photos
-      List<String> imageUrls = [];
-      for (var file in _photos) {
-        if (file != null) {
-          final url = await ref
-              .read(storageServiceProvider)
-              .uploadProfileImage(file, user.uid);
-          imageUrls.add(url);
-        }
+    final draftProfile = UserProfile(
+      id: user.uid,
+      name: _nameController.text.trim(),
+      age: _age,
+      dob: _dob!.millisecondsSinceEpoch,
+      gender: _gender,
+      bio: _bioController.text.trim(),
+      imageUrls: [], // Filled by provider
+      location: _locationController.text.trim(),
+      profession: "",
+      interests: _selectedInterests,
+      distance: 0,
+      lastActive: DateTime.now().millisecondsSinceEpoch,
+      joinedDate: DateTime.now().millisecondsSinceEpoch,
+      isVerified: false,
+      status: _status,
+      orientation: _orientation,
+      drinks: _drinks,
+      smokes: _smokes,
+      bodyType: _bodyType,
+      sign: _sign,
+      religion: _religion,
+      lookingFor: _lookingFor,
+      height: _heightController.text,
+      speaks: _speaksController.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+    );
+
+    // Call Provider
+    await ref
+        .read(profileSetupProvider.notifier)
+        .submitProfile(photos: _photos, draftProfile: draftProfile);
+
+    // Check State
+    final state = ref.read(profileSetupProvider);
+    if (state.hasError) {
+      if (mounted) {
+        CustomToast.show(context, "Error: ${state.error}", isError: true);
       }
-
-      // 2. Create Profile
-      final profile = UserProfile(
-        id: user.uid,
-        name: _nameController.text.trim(),
-        age: _age,
-        dob: _dob!.millisecondsSinceEpoch,
-        gender: _gender,
-        bio: _bioController.text.trim(),
-        imageUrls: imageUrls,
-        location: _locationController.text.trim(), // Use input location
-        profession: "",
-        interests: _selectedInterests, // Use input interests
-        distance: 0,
-        lastActive: DateTime.now().millisecondsSinceEpoch,
-        joinedDate: DateTime.now().millisecondsSinceEpoch,
-
-        isVerified: false,
-        status: _status,
-        orientation: _orientation,
-        drinks: _drinks,
-        smokes: _smokes,
-        bodyType: _bodyType,
-        sign: _sign,
-        religion: _religion,
-        lookingFor: _lookingFor,
-        height: _heightController.text,
-        speaks: _speaksController.text
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(),
-      );
-
-      await ref.read(firestoreServiceProvider).saveUserProfile(profile);
-
+    } else {
       if (mounted) {
         CustomToast.show(context, "Profile Created!");
-        // Navigate to Home
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        CustomToast.show(context, "Error creating profile: $e", isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final setupState = ref.watch(profileSetupProvider);
+    final isLoading = setupState.isLoading;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+      backgroundColor: AppColors.scaffoldBackground,
       appBar: AppBar(
         title: Text(
           _currentStep == 0
@@ -225,12 +216,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  24,
-                  24,
-                  24,
-                  100,
-                ), // Extra bottom padding for keyboard
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
                 child: _buildCurrentStep(),
               ),
             ),
@@ -240,15 +226,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _nextStep,
+                  onPressed: isLoading ? null : _nextStep,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: _isLoading
+                  child: isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
                       : Text(
                           _currentStep == 3 ? "Complete Profile" : "Next",
@@ -277,7 +263,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               labelText: "Name",
               labelStyle: TextStyle(color: Colors.grey[400]),
               filled: true,
-              fillColor: const Color(0xFF1E293B),
+              fillColor: AppColors.card,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -292,7 +278,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               labelText: "Location (City, Country)",
               labelStyle: TextStyle(color: Colors.grey[400]),
               filled: true,
-              fillColor: const Color(0xFF1E293B),
+              fillColor: AppColors.card,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -313,7 +299,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -334,14 +320,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _gender,
                 isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
+                dropdownColor: AppColors.card,
                 items: ['WOMEN', 'MEN']
                     .map(
                       (g) => DropdownMenuItem(
@@ -401,7 +387,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -431,7 +417,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                           }
                         });
                       },
-                      backgroundColor: const Color(0xFF0F172A),
+                      backgroundColor: AppColors.surface,
                       selectedColor: Colors.amber,
                       labelStyle: TextStyle(
                         color: isSelected ? Colors.black : Colors.white,
@@ -493,7 +479,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             onTap: () => _pickImage(index),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey[800]!),
                 image: file != null
@@ -519,7 +505,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           labelStyle: TextStyle(color: Colors.grey[400]),
           hintStyle: TextStyle(color: Colors.grey[600]),
           filled: true,
-          fillColor: const Color(0xFF1E293B),
+          fillColor: AppColors.card,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -537,7 +523,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey[400]),
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: AppColors.card,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -555,7 +541,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -572,7 +558,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              dropdownColor: const Color(0xFF1E293B),
+              dropdownColor: AppColors.card,
               items: items
                   .map(
                     (i) => DropdownMenuItem(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:giphy_get/giphy_get.dart';
 import '../models/chat_message.dart';
+import '../models/local/local_message.dart';
 import '../widgets/custom_toast.dart';
 import '../services/chat_service.dart';
 import '../services/auth_service.dart';
@@ -16,6 +16,7 @@ import '../screens/public_profile_screen.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
+import 'dart:async'; // For Timer // Added for Debounce
 // import 'package:permission_handler/permission_handler.dart'; // Unused
 
 // --- Constants (Parity with React) ---
@@ -45,6 +46,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Mark chat read on enter
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.match['chatId'] != null) {
+        ref
+            .read(chatServiceProvider)
+            .markChatRead(widget.match['chatId']!, _currentUserId);
+      }
+    });
+
     _audioRecorder = AudioRecorder();
     _audioPlayer = AudioPlayer();
     _audioPlayer.onPlayerStateChanged.listen((state) {
@@ -61,6 +71,31 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           _playingUrl = null;
         });
       }
+    });
+  }
+
+  // Helper getters
+  String get _currentUserId =>
+      ref.read(authServiceProvider).currentUser?.uid ?? '';
+  String get _chatId => widget.match['chatId']!;
+  String get _otherUserId => widget.match['id']!;
+
+  // Typing Debounce
+  Timer? _typingTimer;
+
+  void _onTextChanged(String text) {
+    if (_typingTimer?.isActive ?? false) _typingTimer?.cancel();
+
+    // Set typing = true immediately if not already
+    ref
+        .read(chatServiceProvider)
+        .updateTypingStatus(_chatId, _currentUserId, true);
+
+    // Stop after 2 seconds of inactivity
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      ref
+          .read(chatServiceProvider)
+          .updateTypingStatus(_chatId, _currentUserId, false);
     });
   }
 
@@ -169,225 +204,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         _playingUrl = url;
       });
     }
-  }
-
-  void _showActionsMenu() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E293B),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person_off, color: Colors.white),
-              title: const Text(
-                "Unmatch",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () async {
-                final navigator = Navigator.of(context); // Capture navigator
-                navigator.pop(); // Close menu
-
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E293B),
-                    title: const Text(
-                      "Unmatch?",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    content: const Text(
-                      "Are you sure? This conversation will be deleted.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          "Unmatch",
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm != true) return;
-                if (!context.mounted) return;
-
-                final currentUser = ref.read(authServiceProvider).currentUser;
-                if (currentUser != null) {
-                  navigator.pop(); // Close chat using captured navigator
-
-                  await ref
-                      .read(chatServiceProvider)
-                      .unmatchUser(
-                        widget.match['chatId']!,
-                        currentUser.uid,
-                        widget.match['id'] ?? '',
-                      );
-
-                  if (context.mounted) {
-                    CustomToast.show(context, "Unmatched.");
-                  }
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.block, color: Colors.white),
-              title: const Text(
-                "Block",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () async {
-                final navigator = Navigator.of(context); // Capture navigator
-                navigator.pop(); // Close menu
-
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E293B),
-                    title: const Text(
-                      "Unmatch?",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    content: const Text(
-                      "Are you sure? This conversation will be deleted.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          "Unmatch",
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm != true) return;
-                if (!context.mounted) return;
-
-                final currentUser = ref.read(authServiceProvider).currentUser;
-                if (currentUser != null) {
-                  navigator.pop(); // Close chat using captured navigator
-
-                  await ref
-                      .read(chatServiceProvider)
-                      .unmatchUser(
-                        widget.match['chatId']!,
-                        currentUser.uid,
-                        widget.match['id'] ?? '',
-                      );
-
-                  if (context.mounted) {
-                    CustomToast.show(context, "Unmatched.");
-                  }
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.block, color: Colors.white),
-              title: const Text(
-                "Block",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () async {
-                final navigator = Navigator.of(context); // Capture navigator
-                navigator.pop(); // Close menu
-
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E293B),
-                    title: const Text(
-                      "Block User?",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    content: const Text(
-                      "They will be unmatched and won't be able to see your profile.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          "Block",
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm != true) return;
-                if (!context.mounted) return;
-
-                final currentUser = ref.read(authServiceProvider).currentUser;
-                if (currentUser != null) {
-                  navigator.pop(); // Close chat using captured navigator
-
-                  await ref
-                      .read(chatServiceProvider)
-                      .blockUser(
-                        widget.match['chatId']!,
-                        currentUser.uid,
-                        widget.match['id'] ?? '',
-                      );
-
-                  if (context.mounted) {
-                    CustomToast.show(context, "Blocked user.", isError: true);
-                  }
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.report, color: Colors.red),
-              title: const Text(
-                "Report",
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                CustomToast.show(context, "Reported user.", isError: true);
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -537,17 +353,111 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ),
         ),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.grey),
-            onPressed: _showActionsMenu,
+            onSelected: (value) {
+              if (value == 'unmatch') {
+                _confirmAction(
+                  context,
+                  'Unmatch',
+                  'Are you sure you want to unmatch? The chat will be deleted.',
+                  () {
+                    final matchId = widget.match['id'] ?? '';
+                    if (matchId.isNotEmpty) {
+                      ref
+                          .read(chatServiceProvider)
+                          .unmatchUser(
+                            widget.match['chatId']!,
+                            ref.read(authServiceProvider).currentUser!.uid,
+                            matchId,
+                          );
+                    }
+                  },
+                );
+              } else if (value == 'block') {
+                _confirmAction(
+                  context,
+                  'Block User',
+                  'They will be blocked and unmatched. This cannot be undone.',
+                  () {
+                    final matchId = widget.match['id'] ?? '';
+                    if (matchId.isNotEmpty) {
+                      ref
+                          .read(chatServiceProvider)
+                          .blockUser(
+                            widget.match['chatId']!,
+                            ref.read(authServiceProvider).currentUser!.uid,
+                            matchId,
+                          );
+                    }
+                  },
+                );
+              } else if (value == 'report') {
+                _confirmAction(
+                  context,
+                  'Report User',
+                  'Report this user for inappropriate behavior? We will review this account.',
+                  () {
+                    // MVP: Report Flag
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("User reported. Thank you."),
+                      ),
+                    );
+                  },
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem(value: 'unmatch', child: Text('Unmatch')),
+                const PopupMenuItem(
+                  value: 'report',
+                  child: Text('Report', style: TextStyle(color: Colors.orange)),
+                ),
+                const PopupMenuItem(
+                  value: 'block',
+                  child: Text('Block', style: TextStyle(color: Colors.red)),
+                ),
+              ];
+            },
           ),
         ],
       ),
       body: Column(
         children: [
+          // Typing Indicator Header
+          StreamBuilder<bool>(
+            stream: ref
+                .watch(chatServiceProvider)
+                .listenToTypingStatus(_chatId, _otherUserId),
+            builder: (context, snapshot) {
+              if (snapshot.data == true) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  color: const Color(0xFF0F172A),
+                  width: double.infinity,
+                  child: const Text(
+                    "User is typing...",
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+
+          // Messages List
           // Messages List
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
+            child: StreamBuilder<List<LocalMessage>>(
               stream: ref
                   .watch(chatServiceProvider)
                   .getMessages(widget.match['chatId']!),
@@ -556,11 +466,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 if (!snapshot.hasData) {
+                  // Show loading only if we have NO data yet.
+                  // Stream might emit empty list initially if DB empty.
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final docs = snapshot.data?.docs ?? [];
-                if (docs.isEmpty) {
+                final localMessages = snapshot.data ?? [];
+                if (localMessages.isEmpty) {
                   return const Center(
                     child: Text(
                       "No messages yet",
@@ -568,26 +480,40 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     ),
                   );
                 }
-                final messages = docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+
+                final messages = localMessages.map((msg) {
                   final currentUser = ref.read(authServiceProvider).currentUser;
-                  final isMe = data['senderId'] == currentUser?.uid;
+                  final isMe = msg.senderId == currentUser?.uid;
+
+                  // Format timestamp
+                  final now = DateTime.now();
+                  final diff = now.difference(msg.timestamp);
+                  String timeStr;
+                  if (diff.inMinutes < 1) {
+                    timeStr = "Just now";
+                  } else if (diff.inHours < 1) {
+                    timeStr = "${diff.inMinutes}m ago";
+                  } else if (diff.inDays < 1) {
+                    timeStr = "${diff.inHours}h ago";
+                  } else {
+                    timeStr = "${diff.inDays}d ago";
+                  }
 
                   return ChatMessage(
-                    id: doc.id,
-                    text: data['text'] ?? '',
-                    timestamp:
-                        "Just now", // Format timestamp properly in real app
+                    id: msg.firestoreId,
+                    text: msg.text,
+                    timestamp: timeStr,
                     isMe: isMe,
-                    type: data['type'] ?? 'TEXT',
-                    mediaUrl: data['mediaUrl'],
+                    type: msg.type,
+                    mediaUrl: msg.mediaUrl,
                   );
                 }).toList();
 
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),
-                  reverse: true, // Messages come newest first from Query
+                  reverse:
+                      true, // Messages come newest first from Service (handled by getMessages sort)
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     return _buildMessageBubble(messages[index]);
@@ -637,7 +563,17 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             vertical: 10,
                           ),
                         ),
-                        onSubmitted: (val) => _handleSend(val),
+                        onSubmitted: (val) {
+                          _handleSend(val);
+                          ref
+                              .read(chatServiceProvider)
+                              .updateTypingStatus(
+                                _chatId,
+                                _currentUserId,
+                                false,
+                              );
+                        },
+                        onChanged: _onTextChanged,
                       ),
                     ),
                   ),
@@ -909,4 +845,37 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // Assuming this replaces or appends for specific types
   // The original _buildMessageBubble handles 'TEXT', 'GIFT', 'GIF', 'IMAGE'.
   // We need to inject 'AUDIO' logic inside the first `children` list of the Column.
+
+  void _confirmAction(
+    BuildContext context,
+    String title,
+    String content,
+    VoidCallback onConfirm,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: Text(content, style: const TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(ctx);
+              onConfirm();
+              if (title == 'Unmatch' || title == 'Block User') {
+                Navigator.pop(context); // Close chat screen only for these
+              }
+            },
+            child: const Text("Confirm", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 }

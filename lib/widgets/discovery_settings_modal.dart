@@ -6,6 +6,7 @@ import '../providers/user_provider.dart';
 import 'custom_toast.dart';
 
 import '../constants/profile_options.dart';
+import '../models/discovery_preferences.dart';
 
 class DiscoverySettingsModal extends ConsumerStatefulWidget {
   const DiscoverySettingsModal({super.key});

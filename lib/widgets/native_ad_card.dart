@@ -16,6 +16,7 @@ class NativeAdCard extends ConsumerStatefulWidget {
 class _NativeAdCardState extends ConsumerState<NativeAdCard> {
   NativeAd? _nativeAd;
   bool _isAdLoaded = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -33,12 +34,20 @@ class _NativeAdCardState extends ConsumerState<NativeAdCard> {
                   setState(() {
                     _nativeAd = ad as NativeAd;
                     _isAdLoaded = true;
+                    _hasError = false;
                   });
                 }
               },
               onAdFailedToLoad: (ad, error) {
                 debugPrint('Native Ad failed to load: $error');
                 ad.dispose();
+                if (mounted) {
+                  setState(() {
+                    _hasError = true;
+                    _isAdLoaded = false;
+                    _nativeAd = null;
+                  });
+                }
               },
             )
           ..load();
@@ -52,6 +61,28 @@ class _NativeAdCardState extends ConsumerState<NativeAdCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (_hasError) {
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 48),
+              SizedBox(height: 16),
+              Text(
+                "Unable to load content",
+                style: TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // If ad isn't loaded yet, show a placeholder that looks like a loading card
     if (!_isAdLoaded || _nativeAd == null) {
       return Container(

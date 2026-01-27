@@ -138,27 +138,14 @@ class FeedService {
       );
     }
 
-    const int patternLength = 4;
-    final int positionInPattern = index % patternLength; // 0, 1, 2, 3
+    // Pure Profile Feed (No Ads in Swipe Stack)
+    final int profileIndex = index % _activeProfiles.length;
+    final profile = _activeProfiles[profileIndex];
 
-    // Indices 0, 1, 2 are Profiles. Index 3 is Ad.
-    if (positionInPattern < 3) {
-      // It's a Profile
-      final int cycleIndex = (index / patternLength).floor();
-      final int profileIndex =
-          (cycleIndex * 3 + positionInPattern) % _activeProfiles.length;
-      final profile = _activeProfiles[profileIndex];
-
-      return CardItem(
-        type: CardType.profile,
-        data: profile,
-        uniqueId: 'profile-$index-${profile.id}',
-      );
-    } else {
-      // It's an Ad
-      // Return generic Ad Placeholder
-      // We don't need data, the NativeAdCard will handle loading the ad
-      return CardItem(type: CardType.ad, data: null, uniqueId: 'ad-$index');
-    }
+    return CardItem(
+      type: CardType.profile,
+      data: profile,
+      uniqueId: 'profile-$index-${profile.id}',
+    );
   }
 }

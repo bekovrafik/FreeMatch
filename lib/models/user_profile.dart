@@ -1,3 +1,5 @@
+import 'discovery_preferences.dart';
+
 class UserProfile {
   final String id;
   final String name;
@@ -167,6 +169,37 @@ class UserProfile {
       hasLikedCurrentUser: hasLikedCurrentUser ?? this.hasLikedCurrentUser,
       isSuperLike: isSuperLike ?? this.isSuperLike,
       popularityScore: popularityScore ?? this.popularityScore,
+    );
+  }
+
+  // Helper: Map to DiscoveryPreferences
+  DiscoveryPreferences toDiscoveryPreferences([
+    DiscoveryPreferences? existing,
+  ]) {
+    return DiscoveryPreferences(
+      ageRange: existing?.ageRange ?? const [18, 35],
+      distance: distance > 0 ? distance : (existing?.distance ?? 50),
+      gender: lookingFor != null && lookingFor!.isNotEmpty
+          ? (lookingFor == 'MEN' || lookingFor == 'WOMEN'
+                ? lookingFor!
+                : 'EVERYONE')
+          : (existing?.gender ?? 'EVERYONE'),
+      location: location,
+      interests: interests,
+      lookingFor: lookingFor != null
+          ? [lookingFor!]
+          : (existing?.lookingFor ?? []),
+    );
+  }
+
+  // Helper: Create Profile from Preferences (Partial Update)
+  UserProfile copyWithPreferences(DiscoveryPreferences prefs) {
+    return copyWith(
+      distance: prefs.distance,
+      location: prefs.location,
+      interests: prefs.interests,
+      // We map 'gender' preference to 'lookingFor' field in profile/firestore for query usage
+      lookingFor: prefs.gender,
     );
   }
 }

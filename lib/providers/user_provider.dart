@@ -3,41 +3,7 @@ import '../models/user_profile.dart'; // For UserProfile
 import '../services/auth_service.dart'; // For authStateProvider
 import '../services/firestore_service.dart'; // For firestoreServiceProvider
 
-class DiscoveryPreferences {
-  final List<double> ageRange; // [min, max]
-  final double distance;
-  final String gender; // 'MEN', 'WOMEN', 'EVERYONE'
-  final String location;
-  final List<String> interests;
-  final List<String> lookingFor;
-
-  const DiscoveryPreferences({
-    this.ageRange = const [18, 35],
-    this.distance = 50,
-    this.gender = 'EVERYONE',
-    this.location = '',
-    this.interests = const [],
-    this.lookingFor = const [],
-  });
-
-  DiscoveryPreferences copyWith({
-    List<double>? ageRange,
-    double? distance,
-    String? gender,
-    String? location,
-    List<String>? interests,
-    List<String>? lookingFor,
-  }) {
-    return DiscoveryPreferences(
-      ageRange: ageRange ?? this.ageRange,
-      distance: distance ?? this.distance,
-      gender: gender ?? this.gender,
-      location: location ?? this.location,
-      interests: interests ?? this.interests,
-      lookingFor: lookingFor ?? this.lookingFor,
-    );
-  }
-}
+import '../models/discovery_preferences.dart';
 
 class UserState {
   final int superLikes;
@@ -74,7 +40,23 @@ class UserState {
 class UserNotifier extends Notifier<UserState> {
   @override
   UserState build() {
-    return const UserState();
+    // Listen to profile stream to keep local state in sync
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
+    return profileAsync.when(
+      data: (profile) {
+        if (profile != null) {
+          // Sync preferences from profile
+          return state.copyWith(
+            preferences: profile.toDiscoveryPreferences(state.preferences),
+            isVerified: profile.isVerified,
+          );
+        }
+        return const UserState();
+      },
+      loading: () => state, // Keep existing state while loading
+      error: (_, __) => state,
+    );
   }
 
   void decrementSuperLike() {
@@ -87,8 +69,31 @@ class UserNotifier extends Notifier<UserState> {
     state = state.copyWith(superLikes: state.superLikes + 1);
   }
 
-  void updatePreferences(DiscoveryPreferences newPrefs) {
+  Future<void> updatePreferences(DiscoveryPreferences newPrefs) async {
+    // 1. Optimistic Update
     state = state.copyWith(preferences: newPrefs);
+
+    // 2. Persist to Firestore
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user != null) {
+      // Create a temporary profile dummy to use the mapping logic or just map manually
+      // We'll update specific fields
+      final updates = {
+        'distance': newPrefs.distance,
+        'location': newPrefs.location,
+        'interests': newPrefs.interests,
+        'lookingFor': newPrefs.gender, // Mapping 'Show me' -> 'lookingFor'
+        // ageRange is usually local-only or needs specific fields in UserProfile if we want to save it
+        // For now, we are NOT saving ageRange to profile as UserProfile doesn't have minAge/maxAge fields.
+        // If we want to persist ageRange, we need to add 'minAge'/'maxAge' to UserProfile or a 'settings' sub-collection.
+        // Given the UserProfile definition, we'll skip ageRange persistence for now or add it to 'discoverySettings' map if schema allowed.
+        // Let's assume we update what we can.
+      };
+
+      await ref
+          .read(firestoreServiceProvider)
+          .updateUserFields(user.uid, updates);
+    }
   }
 
   void setVerified(bool isVerified) {
