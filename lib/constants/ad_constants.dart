@@ -43,6 +43,8 @@ class AdConstants {
       return kReleaseMode
           ? 'ca-app-pub-7841436065695087/4734111336' // Production
           : 'ca-app-pub-3940256099942544/5575463023'; // Test ID
+    } else if (!kReleaseMode) {
+      return 'ca-app-pub-3940256099942544/9257395921'; // Test ID
     } else {
       throw UnsupportedError('Unsupported platform');
     }

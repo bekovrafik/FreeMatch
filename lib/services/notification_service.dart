@@ -103,4 +103,18 @@ class NotificationService {
       );
     }
   }
+
+  Future<void> setupInteractedMessage(
+    void Function(RemoteMessage) handleMessage,
+  ) async {
+    // 1. Terminated State: App opened from notification
+    RemoteMessage? initialMessage = await _firebaseMessaging
+        .getInitialMessage();
+    if (initialMessage != null) {
+      handleMessage(initialMessage);
+    }
+
+    // 2. Background State: App opened from background
+    FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
+  }
 }

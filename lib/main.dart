@@ -97,23 +97,15 @@ class _FreeMatchAppState extends ConsumerState<FreeMatchApp>
 
     // Initialize App Open Ad Manager
     _appOpenAdManager = ref.read(appOpenAdManagerProvider);
-    _appOpenAdManager.loadAd();
+    _appOpenAdManager.loadAd(showImmediately: true);
 
     // Deep Linking Setup
-    _setupInteractedMessage();
+    ref
+        .read(notificationServiceProvider)
+        .setupInteractedMessage(_handleMessage);
   }
 
-  Future<void> _setupInteractedMessage() async {
-    // 1. Terminated State: App opened from notification
-    RemoteMessage? initialMessage = await FirebaseMessaging.instance
-        .getInitialMessage();
-    if (initialMessage != null) {
-      _handleMessage(initialMessage);
-    }
-
-    // 2. Background State: App opened from background
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
-  }
+  // Removed _setupInteractedMessage as it is now in NotificationService
 
   void _handleMessage(RemoteMessage message) {
     if (message.data['type'] == 'chat') {

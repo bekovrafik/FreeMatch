@@ -49,7 +49,8 @@ class AppOpenAdManager {
   DateTime? _appOpenLoadTime;
 
   /// Load an AppOpenAd.
-  void loadAd() {
+  /// [showImmediately] if true, attempts to show the ad as soon as it loads.
+  void loadAd({bool showImmediately = false}) {
     AppOpenAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
@@ -58,6 +59,9 @@ class AppOpenAdManager {
           debugPrint('AppOpenAd loaded');
           _appOpenAd = ad;
           _appOpenLoadTime = DateTime.now();
+          if (showImmediately) {
+            showAdIfAvailable();
+          }
         },
         onAdFailedToLoad: (error) {
           debugPrint('AppOpenAd failed to load: $error');
