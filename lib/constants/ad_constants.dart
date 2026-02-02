@@ -49,4 +49,20 @@ class AdConstants {
       throw UnsupportedError('Unsupported platform');
     }
   }
+
+  static String get bannerAdUnitId {
+    if (Platform.isAndroid) {
+      return kReleaseMode
+          ? 'ca-app-pub-7841436065695087/YOUR_BANNER_ID' // TODO: Replace with production ID
+          : 'ca-app-pub-3940256099942544/6300978111'; // Test ID
+    } else if (Platform.isIOS) {
+      return kReleaseMode
+          ? 'ca-app-pub-7841436065695087/YOUR_BANNER_ID' // TODO: Replace with production ID
+          : 'ca-app-pub-3940256099942544/2934735716'; // Test ID
+    } else if (!kReleaseMode) {
+      return 'ca-app-pub-3940256099942544/6300978111'; // Test ID
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
 }

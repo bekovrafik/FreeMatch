@@ -4,6 +4,8 @@
 	<dict>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
@@ -37,6 +39,8 @@
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>This app needs access to your photo library to send images in chat.</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<key>UIRequiresFullScreen</key>
 		<true/>
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen.storyboard</string>

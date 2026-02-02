@@ -1,7 +1,7 @@
 name: freematch
 description: "High-performance AI-driven dating platform."
 publish_to: 'none'
-version: 1.0.0+5
+version: 1.0.0+7
 
 environment:
   sdk: '>=3.10.1 <4.0.0'
@@ -19,6 +19,7 @@ dependencies:
   cloud_firestore: ^6.1.1
   firebase_storage: ^13.0.5
   firebase_messaging: ^16.1.0
+  firebase_crashlytics: ^5.0.6
   
   # --- AI & Matching Engine ---
   firebase_ai: ^3.6.1 

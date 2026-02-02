@@ -274,13 +274,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 if (!mounted) return;
 
                                 setState(() => _isLoading = true);
+                                final messenger = ScaffoldMessenger.of(context);
                                 try {
                                   await ref
                                       .read(authServiceProvider)
                                       .signInWithGoogle();
                                 } catch (e) {
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  // if (!mounted) return; // messenger is safe to use
+                                  messenger.showSnackBar(
                                     SnackBar(
                                       content: Text('Google Sign-In Error: $e'),
                                     ),

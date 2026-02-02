@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async'; // For runZonedGuarded
+import 'package:flutter/foundation.dart'; // For PlatformDispatcher
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; // Localization
 import 'package:shared_preferences/shared_preferences.dart'; // Persistence
@@ -10,6 +11,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'theme/app_theme.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth_screen.dart';
@@ -40,16 +42,22 @@ void main() async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
       // 2. Global Error Hook
       FlutterError.onError = (FlutterErrorDetails details) {
         FlutterError.presentError(details);
         debugPrint("UI ERROR: ${details.exception}");
-        // TODO: Send to Crashlytics
+        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
       };
 
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
 
       await MobileAds.instance.initialize();
       await LocalDBService().init();
@@ -71,7 +79,7 @@ void main() async {
     },
     (error, stack) {
       debugPrint("ASYNC ERROR: $error");
-      // TODO: Send to Crashlytics
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     },
   );
 }

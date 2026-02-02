@@ -55,7 +55,7 @@ class UserNotifier extends Notifier<UserState> {
         return const UserState();
       },
       loading: () => state, // Keep existing state while loading
-      error: (_, __) => state,
+      error: (e, s) => state,
     );
   }
 

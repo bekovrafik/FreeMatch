@@ -44,6 +44,7 @@ post_install do |installer|
         '$(inherited)',
         'PERMISSION_MICROPHONE=1',
       ]
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     end
   end
 end
