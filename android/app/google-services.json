@@ -15,54 +15,18 @@
       },
       "oauth_client": [
         {
-          "client_id": "494411912282-62ta57gr6elsn54ed1fkgakmdukgj4he.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBnir2rGVEJqR13Y02rIQRupzPFy8WJklY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "494411912282-62ta57gr6elsn54ed1fkgakmdukgj4he.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "494411912282-r839sbcbsjndf20qfbcdqka9c90dhvid.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.freematch.freematch"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:494411912282:android:6a3a4d144d48962ee93463",
-        "android_client_info": {
-          "package_name": "com.freematch.freematch"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "494411912282-c37vks8retgm5shr61011bh8nh4aumsl.apps.googleusercontent.com",
+          "client_id": "494411912282-81r5c4nij5d8b8d0dhb53og8v1d1ruka.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.freematch.freematch",
-            "certificate_hash": "b9e037a1ee3740b6dade482f9bfe5d9e6ce273a3"
+            "package_name": "com.freematch.app",
+            "certificate_hash": "fc906f000671adeeb92d45278e24f69b81569625"
           }
         },
         {
-          "client_id": "494411912282-hc4immmsb8nnsg0su4ktgd7nsn573nnm.apps.googleusercontent.com",
+          "client_id": "494411912282-adelm33jbb7mv84kqcvi63bqk4cot8bk.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.freematch.freematch",
+            "package_name": "com.freematch.app",
             "certificate_hash": "f220f1e1a94be9ef4c06d5774c4dbb45938cb70e"
           }
         },
