@@ -34,6 +34,8 @@
 		<string>This app needs camera access to take profile photos.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>This app needs access to location to find matches nearby.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>This app needs access to location to find matches nearby even when the app is in the background.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>This app needs microphone access to record voice intros.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
