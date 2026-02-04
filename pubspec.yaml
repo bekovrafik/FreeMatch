@@ -1,7 +1,7 @@
 name: freematch
 description: "High-performance AI-driven dating platform."
 publish_to: 'none'
-version: 1.0.0+8
+version: 1.0.0+9
 
 environment:
   sdk: '>=3.10.1 <4.0.0'
@@ -76,3 +76,5 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/images/play_store_512.png"
   min_sdk_android: 21 # flutter_launcher_icons >= 0.10.0
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/play_store_512.png"

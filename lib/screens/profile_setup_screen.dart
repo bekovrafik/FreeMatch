@@ -9,6 +9,8 @@ import '../constants/profile_options.dart';
 import '../providers/profile_setup_provider.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -48,11 +50,69 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final List<File?> _photos = [null, null, null, null, null, null];
   final ImagePicker _picker = ImagePicker();
 
+  // State
+  bool _isLoadingLocation = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Auto-fill Name from Auth
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user != null && user.displayName != null) {
+      _nameController.text = user.displayName!;
+    }
+
+    // 2. Auto-detect Location
+    WidgetsBinding.instance.addPostFrameCallback((_) => _detectLocation());
+  }
+
+  Future<void> _detectLocation() async {
+    setState(() => _isLoadingLocation = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Just fail silently or maybe ask, but for auto-setup let's be non-intrusive
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+
+      if (permission == LocationPermission.deniedForever) return;
+
+      final position = await Geolocator.getCurrentPosition();
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String detected = "${place.locality ?? ''}, ${place.country ?? ''}";
+        if (detected.startsWith(", ")) detected = detected.substring(2);
+
+        if (mounted) {
+          setState(() {
+            _locationController.text = detected;
+          });
+          CustomToast.show(context, "Location detected: $detected");
+        }
+      }
+    } catch (e) {
+      debugPrint("Location auto-detect error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingLocation = false);
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
-    _locationController.dispose(); // Dispose location
+    _locationController.dispose();
     _heightController.dispose();
     _speaksController.dispose();
     super.dispose();
@@ -283,6 +343,22 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
+              suffixIcon: _isLoadingLocation
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.my_location, color: Colors.blue),
+                      onPressed: _detectLocation,
+                    ),
             ),
           ),
           const SizedBox(height: 20),
