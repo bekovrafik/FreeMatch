@@ -42,34 +42,57 @@ void main() async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      // Initialize Firebase with timeout
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 10));
+      } catch (e, stack) {
+        debugPrint("FIREBASE INIT FAILED: $e");
+        // We might want to record this if Crashlytics is somehow working, 
+        // but likely it isn't if init failed.
+      }
 
       // 2. Global Error Hook
       FlutterError.onError = (FlutterErrorDetails details) {
         FlutterError.presentError(details);
         debugPrint("UI ERROR: ${details.exception}");
-        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+        try {
+          FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+        } catch (_) {}
       };
 
       // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
       PlatformDispatcher.instance.onError = (error, stack) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        try {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        } catch (_) {}
         return true;
       };
 
-      await MobileAds.instance.initialize();
-      await LocalDBService().init();
+      // Non-blocking initialization for other services
+      // We don't want Ads or LocalDB failure to kill the app startup
+      try {
+        await Future.wait([
+          MobileAds.instance.initialize(),
+          LocalDBService().init(),
+        ]).timeout(const Duration(seconds: 5));
+      } catch (e) {
+        debugPrint("SECONDARY SERVICES INIT FAILED: $e");
+      }
 
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
 
       // 3. Load Persistent State (Onboarding)
-      final prefs = await SharedPreferences.getInstance();
-      final bool onboardingCompleted =
-          prefs.getBool('onboarding_completed') ?? false;
+      bool onboardingCompleted = false;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      } catch (e) {
+        debugPrint("PREFS INIT FAILED: $e");
+      }
 
       runApp(
         ProviderScope(
@@ -79,7 +102,12 @@ void main() async {
     },
     (error, stack) {
       debugPrint("ASYNC ERROR: $error");
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      try {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      } catch (_) {}
+      // Ensure splash is removed if we crash early so user sees SOMETHING (even if it's a grey or error screen)
+      // instead of infinite splash
+      FlutterNativeSplash.remove(); 
     },
   );
 }
@@ -101,16 +129,23 @@ class _FreeMatchAppState extends ConsumerState<FreeMatchApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    ref.read(notificationServiceProvider).initialize();
+    
+    // Safety wrapper for initialization
+    try {
+      ref.read(notificationServiceProvider).initialize();
 
-    // Initialize App Open Ad Manager
-    _appOpenAdManager = ref.read(appOpenAdManagerProvider);
-    _appOpenAdManager.loadAd(showImmediately: true);
+      // Initialize App Open Ad Manager
+      _appOpenAdManager = ref.read(appOpenAdManagerProvider);
+      _appOpenAdManager.loadAd(showImmediately: true);
 
-    // Deep Linking Setup
-    ref
-        .read(notificationServiceProvider)
-        .setupInteractedMessage(_handleMessage);
+      // Deep Linking Setup
+      ref
+          .read(notificationServiceProvider)
+          .setupInteractedMessage(_handleMessage);
+    } catch (e, stack) {
+      debugPrint("INIT STATE ERROR: $e");
+      FirebaseCrashlytics.instance.recordError(e, stack, fatal: false);
+    }
   }
 
   // Removed _setupInteractedMessage as it is now in NotificationService
