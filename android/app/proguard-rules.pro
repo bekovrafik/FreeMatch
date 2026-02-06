@@ -41,3 +41,9 @@
 # Kotlin Coroutines & Metadata (Often needed)
 -keep class kotlin.Metadata { *; }
 -keep class kotlinx.coroutines.** { *; }
+
+# AndroidX Activity & Core (for edge-to-edge)
+-keep class androidx.activity.** { *; }
+-keep class androidx.core.view.** { *; }
+-keep interface androidx.activity.** { *; }
+-keep interface androidx.core.view.** { *; }

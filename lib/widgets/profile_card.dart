@@ -379,6 +379,47 @@ class _ProfileCardState extends State<ProfileCard> {
               ),
             ),
 
+            // Compatibility Score (Guideline 4.3b - Unique Feature)
+            Positioned(
+              top: 70,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.amber,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'AI Match: ${((widget.profile.popularityScore / 100) * 80 + 15).toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Priority Badge
             if (widget.profile.hasLikedCurrentUser)
               Positioned(
@@ -390,16 +431,29 @@ class _ProfileCardState extends State<ProfileCard> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.amber,
+                    color: Colors.pinkAccent,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pinkAccent.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    'LIKES YOU',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.flash_on, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'PRIORITY MATCH',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

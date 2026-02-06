@@ -1,8 +1,11 @@
-import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'db_seeder.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:crypto/crypto.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(FirebaseAuth.instance);
@@ -43,13 +46,6 @@ class AuthService {
         await credential.user!.updateDisplayName(name);
         await credential.user!.reload(); // Ensure local user object is updated
       }
-
-      // Seed matches for the new user automatically
-      try {
-        await DbSeeder.seedMatchesForUser(credential.user!.uid);
-      } catch (e) {
-        // ignore
-      }
     }
   }
 
@@ -73,12 +69,7 @@ class AuthService {
       );
 
       if (userCredential.user != null) {
-        // Seed matches for the new user automatically
-        try {
-          await DbSeeder.seedMatchesForUser(userCredential.user!.uid);
-        } catch (e) {
-          // ignore
-        }
+        // ... (removed seeding)
       }
     } catch (e) {
       debugPrint("Google Sign-In Error: $e");
@@ -86,15 +77,61 @@ class AuthService {
     }
   }
 
+  /// 4. SIGN IN WITH APPLE (Guideline 4.8)
+  Future<void> signInWithApple() async {
+    try {
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final OAuthProvider oAuthProvider = OAuthProvider("apple.com");
+      final AuthCredential credential = oAuthProvider.credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      final userCredential = await _firebaseAuth.signInWithCredential(
+        credential,
+      );
+
+      if (userCredential.user != null) {
+        // ... (removed seeding)
+      }
+    } catch (e) {
+      debugPrint("Apple Sign-In Error: $e");
+      rethrow;
+    }
+  }
+
+  /// Helper to generate a random string for Apple Nonce
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  /// Helper to hash the nonce
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
   Future<void> signInAnonymously() async {
     final credential = await _firebaseAuth.signInAnonymously();
     if (credential.user != null) {
-      // Seed matches for the new guest user automatically
-      try {
-        await DbSeeder.seedMatchesForUser(credential.user!.uid);
-      } catch (e) {
-        // ignore
-      }
+      // ... (removed seeding)
     }
   }
 

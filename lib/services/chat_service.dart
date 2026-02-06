@@ -281,6 +281,23 @@ class ChatService {
     });
   }
 
+  // Report User (Firestore Write)
+  Future<void> reportUser({
+    required String reporterId,
+    required String reportedId,
+    required String reason,
+    String? chatId,
+  }) async {
+    await _firestore.collection('reports').add({
+      'reporterId': reporterId,
+      'reportedId': reportedId,
+      'reason': reason,
+      'chatId': chatId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'status': 'PENDING', // Admin can review and change to RESOLVED/BANNED
+    });
+  }
+
   // Block User (Transactional)
   Future<void> blockUser(
     String chatId,
@@ -318,7 +335,9 @@ class ChatService {
 
     await _firestore.runTransaction((transaction) async {
       // 1. Unmatch logic
-      transaction.delete(chatRef);
+      if (chatId.isNotEmpty) {
+        transaction.delete(chatRef);
+      }
       transaction.delete(myLikeRef);
       transaction.delete(otherLikeRef);
       transaction.delete(myReceivedRef);
@@ -398,5 +417,43 @@ class ChatService {
       final ts = userData['lastRead'] as Timestamp?;
       return ts?.toDate();
     });
+  }
+
+  // Fetch Blocked Users
+  Stream<List<Map<String, dynamic>>> getBlockedUsers(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('blocked_users')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final List<Map<String, dynamic>> blocked = [];
+          for (var doc in snapshot.docs) {
+            final profileDoc = await _firestore
+                .collection('users')
+                .doc(doc.id)
+                .get();
+            if (profileDoc.exists) {
+              final data = profileDoc.data()!;
+              blocked.add({
+                'id': doc.id,
+                'name': data['name'] ?? 'Unknown',
+                'image': (data['imageUrls'] as List?)?.firstOrNull ?? '',
+              });
+            }
+          }
+          return blocked;
+        });
+  }
+
+  // Unblock User
+  Future<void> unblockUser(String currentUserId, String targetUserId) async {
+    await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('blocked_users')
+        .doc(targetUserId)
+        .delete();
   }
 }

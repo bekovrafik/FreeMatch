@@ -107,16 +107,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       .getWhoLikedMe(currentUser.uid),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      debugPrint("Error loading likes: ${snapshot.error}");
-                      return SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            "Error loading likes: ${snapshot.error}",
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      );
+                      // Avoid showing raw error to user (Guideline 2.1)
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
                     }
 
                     if (!snapshot.hasData) {
@@ -345,8 +337,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       .getUserChats(currentUser.uid),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return SliverToBoxAdapter(
-                        child: Center(child: Text('Error: ${snapshot.error}')),
+                      return const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.all(48.0),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.offline_bolt_outlined,
+                                  size: 48,
+                                  color: Colors.white24,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  "Trouble connecting. Try again later.",
+                                  style: TextStyle(color: Colors.white24),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       );
                     }
 

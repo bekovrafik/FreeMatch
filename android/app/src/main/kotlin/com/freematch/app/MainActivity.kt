@@ -1,13 +1,12 @@
 package com.freematch.app
 
-import io.flutter.embedding.android.FlutterActivity
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-import androidx.core.view.WindowCompat
-
-class MainActivity : FlutterActivity() {
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
-        // Aligns the Window with the screen edges to allow edge-to-edge content.
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+class MainActivity : FlutterFragmentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
     }
 }

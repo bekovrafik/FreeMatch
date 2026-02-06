@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class WelcomeScreen extends StatefulWidget {
   final VoidCallback onStart;
@@ -17,6 +18,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   void initState() {
     super.initState();
+    FlutterNativeSplash.remove();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),

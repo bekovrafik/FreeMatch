@@ -1,7 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async'; // For runZonedGuarded
-import 'package:flutter/foundation.dart'; // For PlatformDispatcher
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; // Localization
 import 'package:shared_preferences/shared_preferences.dart'; // Persistence
@@ -42,14 +43,30 @@ void main() async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+      // --- SYSTEM UI CONFIGURATION (Guideline 2.3.10) ---
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark, // Crucial for iOS Light text
+          systemNavigationBarColor: Color(0xFF0F172A),
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
+      );
+      // Lock to portrait for better consistency (Optional but recommended)
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+
       // Initialize Firebase with timeout
       try {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         ).timeout(const Duration(seconds: 10));
-      } catch (e, stack) {
+      } catch (e) {
         debugPrint("FIREBASE INIT FAILED: $e");
-        // We might want to record this if Crashlytics is somehow working, 
+        // We might want to record this if Crashlytics is somehow working,
         // but likely it isn't if init failed.
       }
 
@@ -105,9 +122,8 @@ void main() async {
       try {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       } catch (_) {}
-      // Ensure splash is removed if we crash early so user sees SOMETHING (even if it's a grey or error screen)
-      // instead of infinite splash
-      FlutterNativeSplash.remove(); 
+      // Ensure splash is removed if we crash early so user sees SOMETHING
+      FlutterNativeSplash.remove();
     },
   );
 }
@@ -129,7 +145,7 @@ class _FreeMatchAppState extends ConsumerState<FreeMatchApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Safety wrapper for initialization
     try {
       ref.read(notificationServiceProvider).initialize();

@@ -43,19 +43,21 @@ class UserNotifier extends Notifier<UserState> {
     // Listen to profile stream to keep local state in sync
     final profileAsync = ref.watch(currentUserProfileProvider);
 
-    return profileAsync.when(
+    return profileAsync.maybeWhen(
       data: (profile) {
         if (profile != null) {
-          // Sync preferences from profile
-          return state.copyWith(
-            preferences: profile.toDiscoveryPreferences(state.preferences),
+          // Sync preferences from profile using a fresh UserState as base
+          const initialState = UserState();
+          return initialState.copyWith(
+            preferences: profile.toDiscoveryPreferences(
+              initialState.preferences,
+            ),
             isVerified: profile.isVerified,
           );
         }
         return const UserState();
       },
-      loading: () => state, // Keep existing state while loading
-      error: (e, s) => state,
+      orElse: () => const UserState(),
     );
   }
 

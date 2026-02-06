@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
+import 'eula_screen.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -12,6 +14,12 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
+  @override
+  void initState() {
+    super.initState();
+    FlutterNativeSplash.remove();
+  }
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController =
@@ -251,28 +259,90 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
               if (_isLogin) ...[
                 const SizedBox(height: 32),
-                Center(
-                  child: Column(
-                    children: [
-                      TextButton(
-                        onPressed: _isLoading ? null : _guestLogin,
-                        child: const Text(
-                          'Continue as Guest',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        "OR",
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                Column(
+                  children: [
+                    if (Theme.of(context).platform == TargetPlatform.iOS) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  setState(() => _isLoading = true);
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  try {
+                                    await ref
+                                        .read(authServiceProvider)
+                                        .signInWithApple();
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Apple Error: $e'),
+                                      ),
+                                    );
+                                  } finally {
+                                    if (mounted)
+                                      setState(() => _isLoading = false);
+                                  }
+                                },
+                          icon: const Icon(Icons.apple, size: 24),
+                          label: const Text(
+                            'Sign in with Apple',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.05,
+                            ),
+                            side: const BorderSide(color: Colors.white24),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Google Sign In Button
-                      OutlinedButton.icon(
+                    ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
                         onPressed: _isLoading
                             ? null
                             : () async {
                                 if (!mounted) return;
-
                                 setState(() => _isLoading = true);
                                 final messenger = ScaffoldMessenger.of(context);
                                 try {
@@ -280,46 +350,67 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       .read(authServiceProvider)
                                       .signInWithGoogle();
                                 } catch (e) {
-                                  // if (!mounted) return; // messenger is safe to use
                                   messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text('Google Sign-In Error: $e'),
-                                    ),
+                                    SnackBar(content: Text('Google Error: $e')),
                                   );
                                 } finally {
-                                  if (mounted) {
+                                  if (mounted)
                                     setState(() => _isLoading = false);
-                                  }
                                 }
                               },
-                        icon: const Icon(
-                          Icons.g_mobiledata,
-                          size: 28,
-                        ), // Or generic
-                        label: const Text('Sign in with Google'),
+                        icon: const Icon(Icons.g_mobiledata, size: 28),
+                        label: const Text(
+                          'Sign in with Google',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
                           side: const BorderSide(color: Colors.white24),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: _isLoading ? null : _guestLogin,
+                      child: Text(
+                        'Continue as Guest',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
 
               const SizedBox(height: 48),
 
-              const Text(
-                'By continuing, you agree to our Terms of Service.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white24, fontSize: 12),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const EulaScreen()),
+                  );
+                },
+                child: const Text(
+                  'By continuing, you agree to our Terms of Service (EULA).',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white24,
+                    fontSize: 12,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
               ),
             ],
           ),

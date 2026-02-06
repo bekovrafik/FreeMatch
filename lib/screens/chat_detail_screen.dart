@@ -379,16 +379,19 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   context,
                   'Block User',
                   'They will be blocked and unmatched. This cannot be undone.',
-                  () {
+                  () async {
                     final matchId = widget.match['id'] ?? '';
                     if (matchId.isNotEmpty) {
-                      ref
+                      await ref
                           .read(chatServiceProvider)
                           .blockUser(
                             widget.match['chatId']!,
                             ref.read(authServiceProvider).currentUser!.uid,
                             matchId,
                           );
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close chat
+                      }
                     }
                   },
                 );
@@ -397,13 +400,28 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   context,
                   'Report User',
                   'Report this user for inappropriate behavior? We will review this account.',
-                  () {
-                    // MVP: Report Flag
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("User reported. Thank you."),
-                      ),
-                    );
+                  () async {
+                    final matchId = widget.match['id'] ?? '';
+                    if (matchId.isNotEmpty) {
+                      await ref
+                          .read(chatServiceProvider)
+                          .reportUser(
+                            reporterId: ref
+                                .read(authServiceProvider)
+                                .currentUser!
+                                .uid,
+                            reportedId: matchId,
+                            reason: "Reported from Chat Detail",
+                            chatId: widget.match['chatId'],
+                          );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("User reported. Thank you."),
+                          ),
+                        );
+                      }
+                    }
                   },
                 );
               }

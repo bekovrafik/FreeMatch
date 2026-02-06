@@ -86,3 +86,7 @@ build 2/
 pepk.jar
 pepk_out
 pepk_out.zip
+*.p8
+ios_appeal_response.txt
+android/build/
+.vscode/

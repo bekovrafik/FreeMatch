@@ -7,6 +7,7 @@ import '../widgets/custom_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/chat_service.dart';
 
 import '../widgets/profile/personal_details_section.dart';
 
@@ -77,18 +78,59 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
   }
 
-  void _handleReport() {
-    // Mock Report
-    CustomToast.show(context, "User reported.", isError: true);
-    Navigator.pop(context);
-    // Ideally pop again to close profile if needed, or just stay
+  Future<void> _handleReport() async {
+    final currentUserId = ref.read(authServiceProvider).currentUser?.uid;
+    if (currentUserId == null) return;
+
+    try {
+      await ref
+          .read(chatServiceProvider)
+          .reportUser(
+            reporterId: currentUserId,
+            reportedId: widget.profile.id,
+            reason: "Reported from Public Profile",
+          );
+
+      if (mounted) {
+        CustomToast.show(context, "User reported. Thank you.", isError: false);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.show(context, "Error reporting user", isError: true);
+      }
+    }
   }
 
-  void _handleBlock() {
-    // Mock Block
-    CustomToast.show(context, "User blocked.", isError: true);
-    Navigator.pop(context);
-    Navigator.pop(context); // Close chat/profile
+  Future<void> _handleBlock() async {
+    final currentUserId = ref.read(authServiceProvider).currentUser?.uid;
+    if (currentUserId == null) return;
+
+    try {
+      // If we don't have a chatId here (direct from profile), we might need to find it
+      // but blockUser in ChatService handles unmatching too if chatId is provided.
+      // For now, let's assume we might not have chatId if coming from Swipe Stack.
+      // However, ChatService.blockUser expects a chatId.
+      // We'll update ChatService to handle optional chatId.
+
+      await ref
+          .read(chatServiceProvider)
+          .blockUser(
+            "", // Empty chatId for now, just block/unmatch based on IDs
+            currentUserId,
+            widget.profile.id,
+          );
+
+      if (mounted) {
+        CustomToast.show(context, "User blocked.", isError: true);
+        Navigator.pop(context);
+        Navigator.pop(context); // Close profile/chat
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomToast.show(context, "Error blocking user", isError: true);
+      }
+    }
   }
 
   Future<void> _handleMatch() async {
