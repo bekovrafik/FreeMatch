@@ -4,10 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'local_db_service.dart';
 import '../models/local/local_message.dart';
 
-final chatServiceProvider = Provider((ref) => ChatService());
+final chatServiceProvider = Provider((ref) {
+  final localDB = ref.watch(localDBServiceProvider);
+  return ChatService(localDB);
+});
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final LocalDBService _localDb;
+
+  ChatService(this._localDb);
 
   // Create or Get existing Chat
   Future<String> createChat(
@@ -77,7 +83,9 @@ class ChatService {
 
   // --- HYBRID SYNC IMPLEMENTATION ---
 
-  final LocalDBService _localDb = LocalDBService();
+  // --- HYBRID SYNC IMPLEMENTATION ---
+
+  // _localDb is now injected via constructor
 
   Future<void> initLocalDb() async {
     // Ideally called at app startup

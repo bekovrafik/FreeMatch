@@ -608,7 +608,10 @@ class _CardStackState extends ConsumerState<CardStack>
 
   Widget _buildCardView(CardItem item) {
     if (item.type == CardType.profile) {
-      return ProfileCard(profile: item.data as UserProfile);
+      return ProfileCard(
+        key: ValueKey((item.data as UserProfile).id),
+        profile: item.data as UserProfile,
+      );
     } else if (item.type == CardType.ad) {
       return NativeAdCard(cardItem: item);
     } else {

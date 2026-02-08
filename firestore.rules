@@ -28,9 +28,8 @@ service cloud.firestore {
       }
       
       match /received_likes/{likerId} {
-        // READ ONLY: Populated by Cloud Function
-        allow write: if false;
-        allow read: if isAuthenticated();
+        // Populated by Cloud Function, but User can delete (to clear from list)
+        allow read, write, delete: if request.auth.uid == userId;
       }
 
       match /fcmToken {
@@ -53,6 +52,11 @@ service cloud.firestore {
       
       match /messages/{messageId} {
          allow read, create: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+
+      // Typing Status
+      match /typing/{userId} {
+         allow read, write: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       }
     }
   }

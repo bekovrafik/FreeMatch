@@ -9,6 +9,7 @@ import '../models/user_profile.dart';
 import '../services/firestore_service.dart';
 import 'chat_detail_screen.dart';
 import 'likes_screen.dart';
+import 'public_profile_screen.dart';
 import '../providers/unlocked_profiles_provider.dart';
 import '../providers/match_provider.dart';
 
@@ -183,48 +184,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 return GestureDetector(
                                   onTap: () {
                                     if (isUnlocked) {
-                                      // Show minimal profile details
-                                      showDialog(
-                                        context: context,
-                                        builder: (_) => AlertDialog(
-                                          contentPadding: EdgeInsets.zero,
-                                          content: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              if (profile.imageUrls.isNotEmpty)
-                                                Image.network(
-                                                  profile.imageUrls.first,
-                                                  height: 200,
-                                                  width: double.infinity,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              Padding(
-                                                padding: const EdgeInsets.all(
-                                                  16.0,
-                                                ),
-                                                child: Text(
-                                                  "${profile.name}, ${profile.age}",
-                                                  style: const TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16.0,
-                                                    ),
-                                                child: Text(
-                                                  "Swipe right on them in the feed to match!",
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 16),
-                                            ],
+                                      // Navigate to Public Profile for action
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PublicProfileScreen(
+                                            profile: profile.copyWith(
+                                              hasLikedCurrentUser: true,
+                                            ),
                                           ),
                                         ),
                                       );

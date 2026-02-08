@@ -71,16 +71,17 @@ class FeedService {
       // }
 
       if (profiles.isNotEmpty) {
-        final filteredProfiles = profiles.where((profile) {
+        // 1. Initial filter with Location and Distance
+        List<UserProfile> filteredProfiles = profiles.where((profile) {
           // 0. Safety Check: Never show current user
           if (profile.id == user.uid) return false;
 
-          // 3. Distance Filter (Naive check against profile.distance)
+          // Distance Filter
           if (profile.distance > prefs.distance) {
             return false;
           }
 
-          // Location String Filter (City Name etc.)
+          // Location String Filter
           if (prefs.location.isNotEmpty) {
             if (!profile.location.toLowerCase().contains(
               prefs.location.toLowerCase(),
@@ -89,7 +90,7 @@ class FeedService {
             }
           }
 
-          // 4. Interest Filter
+          // Interest Filter
           if (prefs.interests.isNotEmpty) {
             final hasInterest = profile.interests.any(
               (i) => prefs.interests.contains(i),
@@ -99,11 +100,8 @@ class FeedService {
             }
           }
 
-          // 5. Looking For Filter
+          // Looking For Filter
           if (prefs.lookingFor.isNotEmpty) {
-            // If user hasn't specified 'lookingFor' in their profile,
-            // we might default to showing them, or hiding.
-            // Let's hide if they don't match strict filter.
             if (profile.lookingFor == null ||
                 !prefs.lookingFor.contains(profile.lookingFor)) {
               return false;
@@ -113,7 +111,50 @@ class FeedService {
           return true;
         }).toList();
 
-        _activeProfiles.addAll(_gravityService.sortProfiles(filteredProfiles));
+        // 2. WORLDWIDE FALLBACK: If no profiles in location, try ignoring Location and Distance
+        if (filteredProfiles.isEmpty &&
+            (prefs.location.isNotEmpty || prefs.distance < 100)) {
+          debugPrint(
+            'DEBUG: No local profiles found. Falling back to Worldwide.',
+          );
+          filteredProfiles = profiles.where((profile) {
+            if (profile.id == user.uid) return false;
+
+            // Still apply Interest and Looking For filters if they exist
+            if (prefs.interests.isNotEmpty) {
+              final hasInterest = profile.interests.any(
+                (i) => prefs.interests.contains(i),
+              );
+              if (!hasInterest) return false;
+            }
+
+            if (prefs.lookingFor.isNotEmpty) {
+              if (profile.lookingFor == null ||
+                  !prefs.lookingFor.contains(profile.lookingFor)) {
+                return false;
+              }
+            }
+
+            return true;
+          }).toList();
+        }
+
+        // 3. ULTIMATE FALLBACK: If Strict Fallback is empty, show ANYONE matching Age/Gender (ignoring interests/lookingFor)
+        if (filteredProfiles.isEmpty) {
+          debugPrint(
+            'DEBUG: Worldwide fallback empty. Trying ULTIMATE FALLBACK (Ignoring Interests/LookingFor).',
+          );
+          filteredProfiles = profiles.where((profile) {
+            if (profile.id == user.uid) return false;
+            return true;
+          }).toList();
+        }
+
+        if (filteredProfiles.isNotEmpty) {
+          _activeProfiles.addAll(
+            _gravityService.sortProfiles(filteredProfiles),
+          );
+        }
         return;
       }
     }

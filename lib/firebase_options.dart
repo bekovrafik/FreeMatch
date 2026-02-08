@@ -42,21 +42,23 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBnir2rGVEJqR13Y02rIQRupzPFy8WJklY',
-    appId: '1:494411912282:android:6a3a4d144d48962ee93463',
+    appId: '1:494411912282:android:43e256f9c3535357e93463',
     messagingSenderId: '494411912282',
     projectId: 'freematch-d70af',
-    databaseURL: 'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'freematch-d70af.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDHfE_pr2eGey4R2Xboux8FisqZbXBU7jo',
-    appId: '1:494411912282:ios:3a0df5b10a8a9645e93463',
+    appId: '1:494411912282:ios:1e01b1ed4b525c65e93463',
     messagingSenderId: '494411912282',
     projectId: 'freematch-d70af',
-    databaseURL: 'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'freematch-d70af.firebasestorage.app',
-    iosBundleId: 'com.freematch.freematch',
+    iosBundleId: 'com.freematch.app',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
@@ -65,19 +67,21 @@ class DefaultFirebaseOptions {
     messagingSenderId: '494411912282',
     projectId: 'freematch-d70af',
     authDomain: 'freematch-d70af.firebaseapp.com',
-    databaseURL: 'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'freematch-d70af.firebasestorage.app',
     measurementId: 'G-NH4P6GCNJB',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDHfE_pr2eGey4R2Xboux8FisqZbXBU7jo',
-    appId: '1:494411912282:ios:3a0df5b10a8a9645e93463',
+    appId: '1:494411912282:ios:1e01b1ed4b525c65e93463',
     messagingSenderId: '494411912282',
     projectId: 'freematch-d70af',
-    databaseURL: 'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'freematch-d70af.firebasestorage.app',
-    iosBundleId: 'com.freematch.freematch',
+    iosBundleId: 'com.freematch.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -86,9 +90,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '494411912282',
     projectId: 'freematch-d70af',
     authDomain: 'freematch-d70af.firebaseapp.com',
-    databaseURL: 'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
+    databaseURL:
+        'https://freematch-d70af-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'freematch-d70af.firebasestorage.app',
     measurementId: 'G-PB0B85RB2S',
   );
-
 }

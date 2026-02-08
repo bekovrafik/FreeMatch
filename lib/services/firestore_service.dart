@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart'; // Add Geolocator
+import 'dart:math' as math; // For Mock Location Generation
 import '../models/user_profile.dart';
 
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
@@ -51,6 +53,25 @@ class FirestoreService {
           .toList();
       if (profileDocs.isEmpty) return [];
 
+      // 0. Get Current User Location for Distance Calculation
+      double? myLat;
+      double? myLng;
+      try {
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(currentUserId)
+            .get();
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          if (userData != null) {
+            myLat = (userData['latitude'] as num?)?.toDouble();
+            myLng = (userData['longitude'] as num?)?.toDouble();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching current user location: $e');
+      }
+
       // 2. Optimized: Check "Like Status" ONLY for the fetched profiles (Max 20 reads)
       // Instead of reading ALL received_likes (Potential 1000+ reads)
       final profileIds = profileDocs.map((doc) => doc.id).toList();
@@ -85,9 +106,22 @@ class FirestoreService {
         final didLikeMe = likedStatus.containsKey(userId);
         final wasSuper = likedStatus[userId] == true;
 
+        // Dynamic Distance Calculation
+        double calculatedDist = (data['distance'] as num?)?.toDouble() ?? 0.0;
+        if (myLat != null && myLng != null) {
+          final double? uLat = (data['latitude'] as num?)?.toDouble();
+          final double? uLng = (data['longitude'] as num?)?.toDouble();
+          if (uLat != null && uLng != null) {
+            // Returns meters, convert to km
+            calculatedDist =
+                Geolocator.distanceBetween(myLat, myLng, uLat, uLng) / 1000.0;
+          }
+        }
+
         return UserProfile.fromJson({
           ...data,
           'id': userId,
+          'distance': calculatedDist,
           'hasLikedCurrentUser': didLikeMe,
           'isSuperLike': wasSuper, // Pass this context to the profile
         });
@@ -139,6 +173,8 @@ class FirestoreService {
       'profession': profile.profession,
       'gender': profile.gender,
       'distance': profile.distance,
+      'latitude': profile.latitude,
+      'longitude': profile.longitude,
       'interests': profile.interests,
       'isVerified': profile.isVerified,
       'lastActive': profile.lastActive,
@@ -172,6 +208,9 @@ class FirestoreService {
   }) async {
     try {
       final collection = isLike ? 'likes' : 'dislikes';
+      debugPrint(
+        'DEBUG: recordSwipe from $currentUserId to $targetUserId ($collection)',
+      );
 
       // 1. Record the swipe (Atomic Write Trigger)
       await _firestore
@@ -186,14 +225,18 @@ class FirestoreService {
 
       // 2. [UX FIX] Remove from "received_likes" so they disappear from "Who Likes Me"
       // This makes the list act like an Inbox.
+      debugPrint(
+        'DEBUG: Attempting to delete $targetUserId from received_likes of $currentUserId',
+      );
       await _firestore
           .collection('users')
           .doc(currentUserId)
           .collection('received_likes')
           .doc(targetUserId)
           .delete();
+      debugPrint('DEBUG: Deletion successful or doc did not exist.');
     } catch (e) {
-      debugPrint('Error recording swipe: $e');
+      debugPrint('DEBUG ERROR recording swipe/cleanup: $e');
     }
   }
 
@@ -395,10 +438,20 @@ class FirestoreService {
 
     final batch = _firestore.batch();
 
+    // Center point (e.g., New York City)
+    const double centerLat = 40.7128;
+    const double centerLng = -74.0060;
+    final random = math.Random();
+
     for (var i = 0; i < demoUsers.length; i++) {
       final user = demoUsers[i];
       final docRef = _firestore.collection('users').doc();
       final now = DateTime.now().millisecondsSinceEpoch;
+
+      // Random offset within ~10km
+      // 1 degree lat ~= 111km. 10km ~= 0.09 degrees
+      final latOffset = (random.nextDouble() - 0.5) * 0.18;
+      final lngOffset = (random.nextDouble() - 0.5) * 0.18;
 
       batch.set(docRef, {
         'id': docRef.id,
@@ -411,7 +464,9 @@ class FirestoreService {
         'gender': targetGender == 'EVERYONE'
             ? (i < women.length ? 'WOMEN' : 'MEN')
             : targetGender,
-        'distance': (i + 1) * 2.5, // 2.5km increments
+        'distance': (i + 1) * 2.5, // Static fallback
+        'latitude': centerLat + latOffset,
+        'longitude': centerLng + lngOffset,
         'interests': user['interests'],
         'isVerified': true,
         'dob': DateTime.now()
@@ -424,6 +479,7 @@ class FirestoreService {
     }
 
     await batch.commit();
+    debugPrint("DEBUG: Seeded ${demoUsers.length} profiles with Geolocation.");
   }
 
   Future<void> purgeAllUsers() async {

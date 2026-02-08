@@ -49,18 +49,39 @@ class AuthService {
     }
   }
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  bool _isGoogleInitialized = false;
 
   Future<void> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return; // User canceled
+      if (!_isGoogleInitialized) {
+        await _googleSignIn.initialize(
+          serverClientId:
+              '494411912282-62ta57gr6elsn54ed1fkgakmdukgj4he.apps.googleusercontent.com',
+        );
+        _isGoogleInitialized = true;
+      }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // In 7.0.0+, we must ensure initialization.
+      // Usually it's better to do it once, but we can call it here for safety or in a constructor.
+      // However, its presence in search results suggests it's required.
+      // Let's assume it's initialized or we can just call authenticate() if initialize() is not strictly required for every call.
+
+      final googleUser = await _googleSignIn.authenticate();
+      // Removed: if (googleUser == null) return; // unnecessary null check
+
+      // account.authentication is now synchronous in 7.0.0+
+      final googleAuth = googleUser.authentication;
+
+      // accessToken is obtained via authorizationClient
+      final authClient = await googleUser.authorizationClient.authorizeScopes([
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ]);
+      final accessToken = authClient.accessToken;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: accessToken,
         idToken: googleAuth.idToken,
       );
 

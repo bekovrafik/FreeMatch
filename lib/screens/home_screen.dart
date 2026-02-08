@@ -1,5 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../providers/user_provider.dart';
 // import 'package:lucide_icons/lucide_icons.dart';
 import '../widgets/card_stack.dart';
@@ -31,6 +35,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Save Token
     ref.read(homeProvider.notifier).initHome(context);
 
+    // Update User Location for Distance Calculation
+    _updateUserLocation();
+
     // Watch for Daily Reward (Hybrid Approach: Provider fetches, UI shows)
     try {
       final rewardState = await ref.read(dailyRewardCheckProvider.future);
@@ -50,12 +57,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _updateUserLocation() async {
+    try {
+      // Simple permission check and update
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse) {
+        final position = await Geolocator.getCurrentPosition();
+        final user = ref.read(authServiceProvider).currentUser;
+        if (user != null) {
+          await ref.read(firestoreServiceProvider).updateUserFields(user.uid, {
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          });
+          debugPrint(
+            "DEBUG: User location updated: ${position.latitude}, ${position.longitude}",
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error updating user location: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 2. Watch State
     final selectedIndex = ref.watch(homeProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFF020617), // Slate-950
+      floatingActionButton: null,
       appBar: AppBar(
         title: Row(
           children: [

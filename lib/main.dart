@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'dart:async'; // For runZonedGuarded
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -64,6 +65,13 @@ void main() async {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         ).timeout(const Duration(seconds: 10));
+
+        // Initialize App Check for security and to fix emulator login issues
+        // Use debug provider for testing on emulators/simulators
+        await FirebaseAppCheck.instance.activate(
+          androidProvider: AndroidProvider.debug,
+          appleProvider: AppleProvider.debug,
+        );
       } catch (e) {
         debugPrint("FIREBASE INIT FAILED: $e");
         // We might want to record this if Crashlytics is somehow working,
@@ -89,11 +97,12 @@ void main() async {
 
       // Non-blocking initialization for other services
       // We don't want Ads or LocalDB failure to kill the app startup
+      final localDB = LocalDBService(); // Initialize immediately
       try {
         await Future.wait([
           MobileAds.instance.initialize(),
-          LocalDBService().init(),
-        ]).timeout(const Duration(seconds: 5));
+          localDB.init(),
+        ]).timeout(const Duration(seconds: 15));
       } catch (e) {
         debugPrint("SECONDARY SERVICES INIT FAILED: $e");
       }
@@ -113,6 +122,10 @@ void main() async {
 
       runApp(
         ProviderScope(
+          overrides: [
+            // critical fix: use the initialized instance
+            localDBServiceProvider.overrideWithValue(localDB),
+          ],
           child: FreeMatchApp(startOnboarding: !onboardingCompleted),
         ),
       );

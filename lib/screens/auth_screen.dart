@@ -309,8 +309,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       ),
                                     );
                                   } finally {
-                                    if (mounted)
+                                    if (mounted) {
                                       setState(() => _isLoading = false);
+                                    }
                                   }
                                 },
                           icon: const Icon(Icons.apple, size: 24),
@@ -354,8 +355,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                     SnackBar(content: Text('Google Error: $e')),
                                   );
                                 } finally {
-                                  if (mounted)
+                                  if (mounted) {
                                     setState(() => _isLoading = false);
+                                  }
                                 }
                               },
                         icon: const Icon(Icons.g_mobiledata, size: 28),

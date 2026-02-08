@@ -271,24 +271,35 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   Future<void> _showGifPicker() async {
-    // Public Beta Key - User should replace with their own if needed
-    const apiKey = 'Phix89D55M26';
+    // User Provided Key
+    const apiKey = 'ssBkVkGwI21b7lw2KzbgzckXMk6h9Ab0';
 
-    final GiphyGif? gif = await GiphyGet.getGif(
-      context: context,
-      apiKey: apiKey,
-      lang: GiphyLanguage.english,
-      randomID: "freematch_user", // Should be unique user ID in prod
-      tabColor: Colors.pink,
-      modal: false, // Full screen
-      showEmojis: false,
-    );
+    try {
+      final GiphyGif? gif = await GiphyGet.getGif(
+        context: context,
+        apiKey: apiKey,
+        lang: GiphyLanguage.english,
+        randomID: "freematch_user", // Should be unique user ID in prod
+        tabColor: Colors.pink,
+        modal: false, // Full screen
+        showEmojis: false,
+      );
 
-    if (gif != null && mounted) {
-      // Use fixed_width for better performance/size in chat
-      final url = gif.images?.fixedWidth.url ?? gif.images?.original?.url;
-      if (url != null) {
-        _handleSend("Sent a GIF", type: 'GIF', mediaUrl: url);
+      if (gif != null && mounted) {
+        // Use fixed_width for better performance/size in chat
+        final url = gif.images?.fixedWidth.url ?? gif.images?.original?.url;
+        if (url != null) {
+          _handleSend("Sent a GIF", type: 'GIF', mediaUrl: url);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error picking GIF: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to load GIFs. Please check API key."),
+          ),
+        );
       }
     }
   }

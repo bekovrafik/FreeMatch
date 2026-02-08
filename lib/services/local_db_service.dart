@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/local/local_message.dart';
 
 final localDBServiceProvider = Provider<LocalDBService>((ref) {
-  return LocalDBService();
+  throw UnimplementedError(
+    'localDBServiceProvider must be overridden in main.dart',
+  );
 });
 
 class LocalDBService {
@@ -11,9 +13,18 @@ class LocalDBService {
   Box<LocalMessage>? _messageBox;
 
   Future<void> init() async {
-    await Hive.initFlutter();
-    Hive.registerAdapter(LocalMessageAdapter());
-    _messageBox = await Hive.openBox<LocalMessage>(messageBoxName);
+    try {
+      print("DEBUG: LocalDBService init started");
+      await Hive.initFlutter();
+      Hive.registerAdapter(LocalMessageAdapter());
+      _messageBox = await Hive.openBox<LocalMessage>(messageBoxName);
+      print(
+        "DEBUG: LocalDBService init completed. Box is open: ${_messageBox?.isOpen}",
+      );
+    } catch (e) {
+      print("DEBUG: LocalDBService init failed: $e");
+      rethrow;
+    }
   }
 
   Box<LocalMessage> get box {

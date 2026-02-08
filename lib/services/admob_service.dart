@@ -47,6 +47,7 @@ class AppOpenAdManager {
   AppOpenAd? _appOpenAd;
   bool _isShowingAd = false;
   DateTime? _appOpenLoadTime;
+  DateTime? _lastShowTime; // Track when the ad was last shown
 
   /// Load an AppOpenAd.
   /// [showImmediately] if true, attempts to show the ad as soon as it loads.
@@ -60,7 +61,7 @@ class AppOpenAdManager {
           _appOpenAd = ad;
           _appOpenLoadTime = DateTime.now();
           if (showImmediately) {
-            showAdIfAvailable();
+            showAdIfAvailable(isColdStart: true);
           }
         },
         onAdFailedToLoad: (error) {
@@ -81,10 +82,15 @@ class AppOpenAdManager {
         DateTime.now().difference(_appOpenLoadTime!) > const Duration(hours: 4);
   }
 
+  /// Check if we should show the ad based on cooldown (4 hours)
+  bool get _isCooldownExpired {
+    if (_lastShowTime == null) return true; // Show on cold start
+    return DateTime.now().difference(_lastShowTime!) > const Duration(hours: 4);
+  }
+
   /// Shows the ad, if one exists and is not already being shown.
-  /// If the ad is already being shown or is expired, this method invokes
-  /// [onAdDismissed] immediately.
-  void showAdIfAvailable() {
+  /// If [isColdStart] is true, ignores cooldown.
+  void showAdIfAvailable({bool isColdStart = false}) {
     if (!isAdAvailable || _isShowingAd) {
       debugPrint('Tried to show ad before available or while showing.');
       loadAd();
@@ -98,9 +104,15 @@ class AppOpenAdManager {
       return;
     }
 
+    if (!isColdStart && !_isCooldownExpired) {
+      debugPrint('Ad is on cooldown. Skipping.');
+      return;
+    }
+
     _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
         _isShowingAd = true;
+        _lastShowTime = DateTime.now(); // Record show time
         debugPrint('$ad onAdShowedFullScreenContent');
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
